@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:16
+    container_name: learning-db-v2
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: learning_web_platform
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_new:/var/lib/postgresql/data
+
+  ai-engine:
+    image: ollama/ollama
+    container_name: learning-ai
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  postgres_data_new:
+  ollama_data:

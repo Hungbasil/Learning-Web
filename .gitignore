@@ -1,0 +1,22 @@
+
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# =========================
+# Backend (Spring Boot / Java)
+# =========================
+Backend/target/
+Backend/.mvn/wrapper/maven-wrapper.jar
+*.jar
+*.war
+*.class
+
+# =========================
+# Frontend (React / Node.js)
+# =========================
+Frontend/node_modules/
+Frontend/build/
+Frontend/dist/
+.env
