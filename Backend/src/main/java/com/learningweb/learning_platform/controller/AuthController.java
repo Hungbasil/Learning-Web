@@ -1,5 +1,6 @@
 package com.learningweb.learning_platform.controller;
 
+import com.learningweb.learning_platform.dto.LoginRequest;
 import com.learningweb.learning_platform.dto.RegisterRequest;
 import com.learningweb.learning_platform.entity.User;
 import com.learningweb.learning_platform.repository.UserRepository;
@@ -13,6 +14,9 @@ public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private com.learningweb.learning_platform.security.JwtService jwtService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -31,5 +35,18 @@ public class AuthController {
         userRepository.save(newUser);
 
         return ResponseEntity.ok("Đăng ký tài khoản thành công!");
+    }
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        java.util.Optional<User> userOptional = userRepository.findByEmail(request.getEmail());
+        if (userOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("Lỗi: Tài khoản không tồn tại!");
+        }
+        User user = userOptional.get();
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            return ResponseEntity.badRequest().body("Lỗi: Sai mật khẩu!");
+        }
+        String token = jwtService.generateToken(user.getEmail());
+        return ResponseEntity.ok(token);
     }
 }
