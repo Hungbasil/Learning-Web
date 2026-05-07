@@ -1,6 +1,7 @@
 package com.learningweb.learning_platform.controller;
 
 
+import com.learningweb.learning_platform.dto.CourseDetailResponse;
 import com.learningweb.learning_platform.dto.CourseRequest;
 import com.learningweb.learning_platform.entity.Category;
 import com.learningweb.learning_platform.entity.Course;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -49,5 +51,45 @@ public class CourseController {
         courseRepository.save(newCourse);
 
         return ResponseEntity.ok("Chúc mừng! Đã tạo vỏ khóa học thành công!");
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getCourseDetail(@PathVariable Long id) {
+        Course course = courseRepository.findById(id).orElse(null);
+        if (course == null) {
+            return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy khóa học!");
+        }
+
+        List<CourseDetailResponse.SectionDto> sectionDtos = course.getSections().stream().map(section -> {
+            List<CourseDetailResponse.LessonDto> lessonDtos = section.getLessons().stream().map(lesson ->
+                    CourseDetailResponse.LessonDto.builder()
+                            .id(lesson.getId())
+                            .title(lesson.getTitle())
+                            .videoUrl(lesson.getVideoUrl())
+                            .orderIndex(lesson.getOrderIndex())
+                            .isFree(lesson.isFree())
+                            .build()
+            ).toList();
+
+            return CourseDetailResponse.SectionDto.builder()
+                    .id(section.getId())
+                    .title(section.getTitle())
+                    .orderIndex(section.getOrderIndex())
+                    .lessons(lessonDtos)
+                    .build();
+        }).toList();
+
+        CourseDetailResponse response = CourseDetailResponse.builder()
+                .id(course.getId())
+                .title(course.getTitle())
+                .description(course.getDescription())
+                .price(course.getPrice())
+                .imageUrl(course.getImageUrl())
+                .level(course.getLevel())
+                .categoryName(course.getCategory().getName())
+                .instructorName(course.getInstructor().getFullName())
+                .sections(sectionDtos)
+                .build();
+        return ResponseEntity.ok(response);
     }
 }
