@@ -1,5 +1,6 @@
 package com.learningweb.learning_platform.security;
 
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import com.learningweb.learning_platform.entity.User;
 import com.learningweb.learning_platform.repository.UserRepository;
 import jakarta.servlet.FilterChain;
@@ -15,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.List;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter { // OncePerRequestFilter: Lọc mỗi request 1 lần
@@ -48,7 +50,9 @@ public class JwtFilter extends OncePerRequestFilter { // OncePerRequestFilter: L
                 // kiểm tra hợp lệ không
                 if (jwtService.isTokenValid(jwt, user.getEmail())) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            user, null, new ArrayList<>()
+                            user,
+                            null,
+                            List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);

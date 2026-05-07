@@ -17,4 +17,9 @@ public class UserController {
 
         return ResponseEntity.ok("Xin chào " + currentUser.getFullName() + "! Bạn đang truy cập bằng tài khoản: " + currentUser.getEmail());
     }
+
+    @GetMapping("/admin-only")
+    public ResponseEntity<?> getAdminData() {
+        return ResponseEntity.ok("chào mừng đã đến với trang ADMIN.");
+    }
 }
