@@ -27,35 +27,11 @@ public class CourseController {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    @PostMapping
-    public ResponseEntity<?> createCourse(@RequestBody CourseRequest request) {
+    @Autowired
+    private com.learningweb.learning_platform.service.FileUploadService fileUploadService;
 
-        User instructor = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        Category category = categoryRepository.findById(request.getCategoryId())
-                .orElse(null);
-        if (category == null) {
-            return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy danh mục với ID này!");
-        }
-
-        Course newCourse = Course.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .price(request.getPrice())
-                .imageUrl(request.getImageUrl())
-                .level(request.getLevel())
-                .category(category)
-                .instructor(instructor)
-                .totalLessons(0)
-                .totalDuration("0 giờ")
-                .build();
-
-        // 4. Lưu xuống Database
-        courseRepository.save(newCourse);
-
-        return ResponseEntity.ok("Chúc mừng! Đã tạo vỏ khóa học thành công!");
-    }
-
+    // Danh sánh các khóa học
     @GetMapping("/{id}")
     public ResponseEntity<?> getCourseDetail(@PathVariable Long id) {
         Course course = courseRepository.findById(id).orElse(null);
@@ -113,4 +89,112 @@ public class CourseController {
         ).collect(Collectors.toList());
         return ResponseEntity.ok(responseList);
     }
+
+
+
+
+    @PostMapping(consumes = {"multipart/form-data"})
+    public ResponseEntity<?> createCourse(@ModelAttribute CourseRequest request) {
+        try {
+            User instructor = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+            Category category = categoryRepository.findById(request.getCategoryId()).orElse(null);
+            if (category == null) return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy danh mục!");
+            String imageUrl = "";
+            if (request.getImageFile() != null && !request.getImageFile().isEmpty()) {
+                imageUrl = fileUploadService.uploadFile(request.getImageFile());
+            }
+            Course newCourse = Course.builder()
+                    .title(request.getTitle())
+                    .description(request.getDescription())
+                    .price(request.getPrice())
+                    .imageUrl(imageUrl)
+                    .level(request.getLevel())
+                    .category(category)
+                    .instructor(instructor)
+                    .totalLessons(0)
+                    .totalDuration("0 giờ")
+                    .build();
+
+            courseRepository.save(newCourse);
+            return ResponseEntity.ok("Đã tạo khóa học thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
+
+    // sửa khóa học
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
+    public ResponseEntity<?> updateCourse(@PathVariable Long id, @ModelAttribute CourseRequest request) {
+        try {
+            Course existingCourse = courseRepository.findById(id).orElse(null);
+            if (existingCourse == null) return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy khóa học!");
+
+            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+            boolean isCreator = existingCourse.getInstructor().getId().equals(currentUser.getId());
+            boolean isAdmin = "ADMIN".equals(currentUser.getRole());
+
+            if (!isCreator && !isAdmin) {
+                return ResponseEntity.status(403).body("Bạn không có quyền sửa khóa học này!");
+            }
+
+            if (request.getTitle() != null && !request.getTitle().isEmpty()) {
+                existingCourse.setTitle(request.getTitle());
+            }
+            if (request.getDescription() != null && !request.getDescription().isEmpty()) {
+                existingCourse.setDescription(request.getDescription());
+            }
+            if (request.getPrice() != null) {
+                existingCourse.setPrice(request.getPrice());
+            }
+            if (request.getLevel() != null && !request.getLevel().isEmpty()) {
+                existingCourse.setLevel(request.getLevel());
+            }
+
+            if (request.getImageFile() != null && !request.getImageFile().isEmpty()) {
+                String newImageUrl = fileUploadService.uploadFile(request.getImageFile());
+                existingCourse.setImageUrl(newImageUrl);
+            }
+
+            if (request.getCategoryId() != null) {
+                Category newCategory = categoryRepository.findById(request.getCategoryId()).orElse(null);
+                if (newCategory != null) existingCourse.setCategory(newCategory);
+            }
+
+            courseRepository.save(existingCourse);
+            return ResponseEntity.ok("Cập nhật khóa học thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi: " + e.getMessage());
+        }
+    }
+
+    // Xóa khóa học
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteCourse(@PathVariable Long id) {
+        try {
+            Course existingCourse = courseRepository.findById(id).orElse(null);
+            if (existingCourse == null) {
+                return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy khóa học!");
+            }
+
+            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            boolean isCreator = existingCourse.getInstructor().getId().equals(currentUser.getId());
+            boolean isAdmin = "ADMIN".equals(currentUser.getRole());
+
+            if (!isCreator && !isAdmin) {
+                return ResponseEntity.status(403).body("Bạn không có quyền xóa khóa học này!");
+            }
+
+            courseRepository.delete(existingCourse);
+
+            return ResponseEntity.ok("Đã xóa khóa học thành công!");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Lỗi hệ thống: " + e.getMessage());
+        }
+    }
+
+
+
 }
