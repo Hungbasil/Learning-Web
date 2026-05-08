@@ -2,6 +2,7 @@ package com.learningweb.learning_platform.controller;
 
 
 import com.learningweb.learning_platform.dto.CourseDetailResponse;
+import com.learningweb.learning_platform.dto.CourseListResponse;
 import com.learningweb.learning_platform.dto.CourseRequest;
 import com.learningweb.learning_platform.entity.Category;
 import com.learningweb.learning_platform.entity.Course;
@@ -13,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
+
 
 @RestController
 @RequestMapping("/api/courses")
@@ -91,5 +94,23 @@ public class CourseController {
                 .sections(sectionDtos)
                 .build();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getAllCourses() {
+
+        List<Course> courses = courseRepository.findAll();
+        List<CourseListResponse> responseList = courses.stream().map(course ->
+                CourseListResponse.builder()
+                        .id(course.getId())
+                        .title(course.getTitle())
+                        .price(course.getPrice())
+                        .imageUrl(course.getImageUrl())
+                        .level(course.getLevel())
+                        .categoryName(course.getCategory().getName())
+                        .instructorName(course.getInstructor().getFullName())
+                        .build()
+        ).collect(Collectors.toList());
+        return ResponseEntity.ok(responseList);
     }
 }
