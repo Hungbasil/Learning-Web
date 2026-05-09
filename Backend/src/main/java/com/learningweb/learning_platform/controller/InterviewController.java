@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/interviews")
@@ -21,7 +22,7 @@ public class InterviewController {
     @Autowired private InterviewQuestionRepository questionRepository;
     @Autowired private InterviewSessionRepository sessionRepository;
     @Autowired private InterviewAnswerRepository answerRepository;
-
+    @Autowired private com.learningweb.learning_platform.service.OllamaService ollamaService;
     // ================= [PHẦN CỦA HỌC VIÊN] =================
 
     @PostMapping("/{interviewId}/start")
@@ -62,11 +63,33 @@ public class InterviewController {
         InterviewSession session = sessionRepository.findById(sessionId).orElse(null);
         if (session == null) return ResponseEntity.badRequest().body("Không tìm thấy phiên làm bài");
 
-        session.setStatus("SUBMITTED");
+        // --- BẮT ĐẦU LOGIC AI CHẤM ĐIỂM ---
+        List<InterviewAnswer> answers = answerRepository.findBySession(session);
+        for (InterviewAnswer answer : answers) {
+            // Chỉ bắt AI chấm câu nào là "CODE"
+            if ("CODE".equals(answer.getQuestion().getQuestionType()) && answer.getUserAnswer() != null) {
+
+                System.out.println("⏳ Đang chờ chấm câu hỏi Code id: " + answer.getId() + "...");
+                Map<String, Object> aiResult = ollamaService.gradeCodeAnswer(
+                        answer.getQuestion().getContent(),
+                        answer.getUserAnswer()
+                );
+
+                if (aiResult != null) {
+                    answer.setScore((Integer) aiResult.get("score"));
+                    answer.setFeedback(" [Gia sư AI]: " + aiResult.get("feedback"));
+                    answerRepository.save(answer);
+                    System.out.println("Đã chấm xong!");
+                }
+            }
+        }
+        // --- KẾT THÚC LOGIC AI ---
+
+        session.setStatus("WAITING_FOR_REVIEW");
         session.setEndTime(LocalDateTime.now());
         sessionRepository.save(session);
 
-        return ResponseEntity.ok("Đã nộp bài phỏng vấn thành công! Vui lòng chờ kết quả.");
+        return ResponseEntity.ok("Đã nộp bài phỏng vấn thành công! Hệ thống sẽ tự động chấm các bài Code, vui lòng chờ Giảng viên đánh giá tổng thể.");
     }
 
     // ================= [PHẦN GIẢNG VIÊN] =================
