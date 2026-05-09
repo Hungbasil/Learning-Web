@@ -1,6 +1,5 @@
 package com.learningweb.learning_platform.controller;
 
-package com.learningweb.learning_platform.controller;
 
 import com.learningweb.learning_platform.dto.AnswerRequest;
 import com.learningweb.learning_platform.dto.GradeRequest;
@@ -24,7 +23,7 @@ public class InterviewController {
     @Autowired private InterviewAnswerRepository answerRepository;
 
     // ================= [PHẦN CỦA HỌC VIÊN] =================
-    
+
     @PostMapping("/{interviewId}/start")
     public ResponseEntity<?> startInterview(@PathVariable Long interviewId) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
