@@ -25,6 +25,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/payment/callback").permitAll()
                         .requestMatchers("/api/users/admin-only").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

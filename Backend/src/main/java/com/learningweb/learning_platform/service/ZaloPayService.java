@@ -44,17 +44,17 @@ public class ZaloPayService {
             String transId = getCurrentTimeString("yyMMdd") + "_" + System.currentTimeMillis();
 
             String appTime = String.valueOf(System.currentTimeMillis());
-
+            String appUser = String.valueOf(user.getId());
             String embedData = "{\"redirecturl\": \"http://localhost:5173/payment-success\"}";
             String item = "[{\"itemname\": \"" + orderInfo + "\", \"itemprice\": " + amount + ", \"itemquantity\": 1}]";
-            String macData = appId + "|" + transId + "|" + user.getUsername() + "|" + amount + "|" + appTime + "|" + embedData + "|" + item;
+            String macData = appId + "|" + transId + "|" + appUser  + "|" + amount + "|" + appTime + "|" + embedData + "|" + item;
             String mac = HMACUtil.HMacHexStringEncode(HMACUtil.HMAC_SHA256, key1, macData);
 
-            // 4. Đóng gói Body gửi đi (ZaloPay yêu cầu gửi dạng x-www-form-urlencoded)
+
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
             body.add("app_id", appId);
             body.add("app_trans_id", transId);
-            body.add("app_user", user.getUsername());
+            body.add("app_user", appUser);
             body.add("app_time", appTime);
             body.add("item", item);
             body.add("embed_data", embedData);
@@ -89,7 +89,7 @@ public class ZaloPayService {
         }
     }
 
-    // Hàm phụ trợ sinh định dạng thời gian
+    //  sinh định dạng thời gian
     private String getCurrentTimeString(String format) {
         Calendar cal = new GregorianCalendar(TimeZone.getTimeZone("GMT+7"));
         SimpleDateFormat fmt = new SimpleDateFormat(format);
