@@ -20,8 +20,7 @@ public class User {
 
     @Column(nullable = false)
     private String password;
-
     private String fullName;
-
     private String role;
+    private Integer aiTokens = 1;
 }

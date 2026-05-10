@@ -5,6 +5,7 @@ import com.learningweb.learning_platform.dto.LearningPathRequest;
 import com.learningweb.learning_platform.entity.AiLearning;
 import com.learningweb.learning_platform.entity.User;
 import com.learningweb.learning_platform.repository.AiLearningRepository;
+import com.learningweb.learning_platform.repository.UserRepository;
 import com.learningweb.learning_platform.service.OllamaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,23 +20,24 @@ public class AiTutorController {
 
     @Autowired private AiLearningRepository pathRepository;
     @Autowired private OllamaService ollamaService;
-
+    @Autowired private UserRepository userRepository;
 
     @PostMapping("/generate")
     public ResponseEntity<?> generatePath(@RequestBody LearningPathRequest request) {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         Optional<AiLearning> existingPath = pathRepository.findByUser(currentUser);
-        if (existingPath.isPresent()) {
-            return ResponseEntity.badRequest().body("Bạn đã sử dụng hết 1 lượt tạo lộ trình miễn phí. Vui lòng nâng cấp tài khoản (Thanh toán) để tạo lộ trình mới!");
+        if (currentUser.getAiTokens() <= 0) {
+            return ResponseEntity.badRequest().body("Bạn đã hết lượt tạo lộ trình. Hãy thanh toán để nhận thêm lượt!");
         }
 
         System.out.println(" Đang nhờ suy nghĩ vẽ lộ trình...");
-        String roadmap = ollamaService.generateLearningPath(request);
 
-        if (roadmap == null) {
-            return ResponseEntity.internalServerError().body("Lỗi: Không thể kết nối với AI lúc này.");
-        }
+        String roadmap = ollamaService.generateLearningPath(request);
+        if (roadmap == null) return ResponseEntity.internalServerError().body("Lỗi AI");
+        
+        currentUser.setAiTokens(currentUser.getAiTokens() - 1);
+        userRepository.save(currentUser);
 
         // Lưu vào Database để lần sau xem lại
         AiLearning newPath = AiLearning.builder()

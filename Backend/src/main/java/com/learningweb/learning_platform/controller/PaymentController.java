@@ -5,7 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.learningweb.learning_platform.entity.PaymentTransaction;
 import com.learningweb.learning_platform.entity.User;
 import com.learningweb.learning_platform.repository.PaymentTransactionRepository;
+import com.learningweb.learning_platform.repository.PricingPackageRepository;
 import com.learningweb.learning_platform.service.ZaloPayService;
+import com.learningweb.learning_platform.repository.UserRepository;
 import com.learningweb.learning_platform.utils.HMACUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +28,10 @@ public class PaymentController {
 
     @Autowired
     private PaymentTransactionRepository paymentRepository;
+    @Autowired
+    private  UserRepository userRepository;
+    @Autowired
+    private PricingPackageRepository pricingRepository;
 
     @Value("${zalopay.key2}")
     private String key2;
@@ -64,13 +70,17 @@ public class PaymentController {
 
             PaymentTransaction tx = paymentRepository.findByAppTransId(appTransId).orElse(null);
             if (tx != null) {
-
                 tx.setStatus("SUCCESS");
                 tx.setPaidAt(LocalDateTime.now());
                 paymentRepository.save(tx);
+                User user = tx.getUser();
+                long amountPaid = tx.getAmount();
 
-
-                System.out.println("🎉 Đơn hàng " + appTransId + " đã thanh toán thành công!");
+                pricingRepository.findBestFitPackage(amountPaid).ifPresent(pkg -> {
+                    user.setAiTokens(user.getAiTokens() + pkg.getTokens());
+                    userRepository.save(user);
+                    System.out.println(" Khách đã mua: " + pkg.getPackageName() + " - Cộng " + pkg.getTokens() + " lượt AI.");
+                });
             }
 
             result.put("return_code", 1);
