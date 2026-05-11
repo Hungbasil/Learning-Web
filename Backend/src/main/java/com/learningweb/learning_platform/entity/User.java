@@ -14,6 +14,7 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private Integer totalXp = 0;
 
     @Column(unique = true, nullable = false)
     private String email;
