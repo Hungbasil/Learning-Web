@@ -56,7 +56,6 @@ public class OllamaService {
     }
 
     public String generateLearningPath(com.learningweb.learning_platform.dto.LearningPathRequest request) {
-        // 1. Viết "Lời nguyền" (Prompt) thiết kế lộ trình
         String prompt = String.format(
                 "Bạn là một chuyên gia IT Mentor xuất sắc. Hãy thiết kế một lộ trình học tập chi tiết bằng tiếng Việt cho học viên với các thông tin sau:\n" +
                         "- Kỹ năng muốn học: %s\n" +
@@ -88,6 +87,40 @@ public class OllamaService {
         } catch (Exception e) {
             System.out.println(" Lỗi sinh lộ trình AI: " + e.getMessage());
             return null;
+        }
+    }
+
+    // Hàm phân tích code
+    public String analyzeCode(String challengeTitle, String description, String language, String code) {
+        String prompt = String.format(
+                "Bạn là một Mentor lập trình cực kỳ khắt khe nhưng tận tâm. Hãy phân tích đoạn code sau của ứng viên:\n" +
+                        "- Bài toán: %s\n" +
+                        "- Yêu cầu: %s\n" +
+                        "- Ngôn ngữ: %s\n" +
+                        "- Code ứng viên viết:\n```%s\n%s\n```\n\n" +
+                        "YÊU CẦU TRẢ LỜI:\n" +
+                        "1. Chỉ ra lỗi sai (cú pháp, logic, hoặc định dạng chuỗi output).\n" +
+                        "2. Đưa ra gợi ý hướng sửa nhưng TUYỆT ĐỐI KHÔNG viết sẵn đoạn code giải pháp hoàn chỉnh để học viên tự suy nghĩ.\n" +
+                        "3. Trả về bằng tiếng Việt, dùng định dạng Markdown.",
+                challengeTitle, description, language, language, code
+        );
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", "mistral");
+        requestBody.put("prompt", prompt);
+        requestBody.put("stream", false);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity("http://localhost:11434/api/generate", entity, String.class);
+            JsonNode root = objectMapper.readTree(response.getBody());
+            return root.get("response").asText();
+        } catch (Exception e) {
+            System.out.println("❌ Lỗi kết nối Ollama phân tích code: " + e.getMessage());
+            return " [Hệ thống]: Không thể kết nối với AI Mentor lúc này. Vui lòng thử lại sau!";
         }
     }
 
