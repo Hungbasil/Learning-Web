@@ -14,14 +14,14 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private Integer totalXp = 0;
 
     @Column(unique = true, nullable = false)
     private String email;
 
     @Column(nullable = false)
     private String password;
-
     private String fullName;
-
     private String role;
+    private Integer aiTokens = 1;
 }
