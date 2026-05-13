@@ -70,33 +70,37 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-3 md:p-4 relative overflow-hidden animate-fade-in">
+      {/* Animated Background Blobs */}
+      <div className="absolute top-0 left-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-glow"></div>
+      <div className="absolute bottom-0 right-10 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-glow" style={{ animationDelay: '2s' }}></div>
+      
+      <div className="w-full max-w-[320px] relative z-10 animate-fade-in">
         {/* Card Container */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+        <div className="backdrop-blur-md bg-white/10 rounded-2xl shadow-2xl p-6 border border-white/20 hover:border-white/40 transition-all duration-500 animate-slide-up">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Đăng nhập</h1>
-            <p className="text-gray-500">Chào mừng trở lại Learning VN</p>
+          <div className="mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-purple-200 to-cyan-200 bg-clip-text text-transparent mb-1">Đăng nhập</h1>
+            <p className="text-purple-200/70 text-xs md:text-sm">Chào mừng trở lại Learning VN</p>
           </div>
 
           {/* Error Alert */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-2 animate-slide-down">
+              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <p className="text-red-200 text-xs md:text-sm">{error}</p>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* Email Input */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="animate-slide-up" style={{ animationDelay: '0.15s' }}>
+              <label htmlFor="email" className="block text-xs font-medium text-purple-200 mb-1.5">
                 Email
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+              <div className="relative group">
+                <Mail className="absolute left-2.5 top-2.5 w-4 h-4 text-purple-300/50 group-focus-within:text-cyan-300 transition-colors" />
                 <input
                   id="email"
                   type="email"
@@ -104,18 +108,18 @@ export default function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="example@gmail.com"
                   disabled={loading}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full pl-8 pr-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed focus:animate-input-glow"
                 />
               </div>
             </div>
 
             {/* Password Input */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <label htmlFor="password" className="block text-xs font-medium text-purple-200 mb-1.5">
                 Mật khẩu
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+              <div className="relative group">
+                <Lock className="absolute left-2.5 top-2.5 w-4 h-4 text-purple-300/50 group-focus-within:text-cyan-300 transition-colors" />
                 <input
                   id="password"
                   type="password"
@@ -123,7 +127,7 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   disabled={loading}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full pl-8 pr-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed focus:animate-input-glow"
                 />
               </div>
             </div>
@@ -132,11 +136,13 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full mt-4 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white font-semibold py-2 px-3 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl hover:shadow-cyan-500/30 transform hover:scale-105 active:animate-button-pop text-sm animate-slide-up"
+              style={{ animationDelay: '0.25s' }}
+              onMouseDown={(e) => e.currentTarget.classList.add('animate-button-pop')}
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Đang xử lý...</span>
                 </>
               ) : (
@@ -146,9 +152,9 @@ export default function Login() {
           </form>
 
           {/* Footer Link */}
-          <p className="mt-6 text-center text-gray-600 text-sm">
+          <p className="mt-4 text-center text-purple-200/70 text-xs md:text-sm animate-slide-up" style={{ animationDelay: '0.3s' }}>
             Chưa có tài khoản?{' '}
-            <a href="/register" className="text-purple-600 hover:text-purple-700 font-semibold">
+            <a href="/register" className="text-cyan-300 hover:text-cyan-200 font-semibold transition-colors hover:underline">
               Đăng ký tại đây
             </a>
           </p>
