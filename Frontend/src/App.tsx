@@ -2,7 +2,24 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import OtpVerification from '@/pages/OtpVerification'
+import Home from '@/pages/Home'
+import Roadmaps from '@/pages/Roadmaps'
+import AiTutor from '@/pages/AiTutor'
+import Interview from '@/pages/Interview'
+import Stories from '@/pages/Stories'
+import Study from '@/pages/Study'
+import { useAuthStore } from '@/store/authStore'
 import { ArrowRight } from 'lucide-react'
+
+function LandingOrHome() {
+  const { token, user } = useAuthStore()
+  
+  // If authenticated, show dashboard; otherwise show landing page
+  if (token && user) {
+    return <Home />
+  }
+  return <HomePage />
+}
 
 function HomePage() {
   return (
@@ -82,10 +99,16 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<LandingOrHome />} />
+        <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/otp-verification" element={<OtpVerification />} />
+        <Route path="/roadmaps" element={<Roadmaps />} />
+        <Route path="/ai-tutor" element={<AiTutor />} />
+        <Route path="/interview" element={<Interview />} />
+        <Route path="/stories" element={<Stories />} />
+        <Route path="/study" element={<Study />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
