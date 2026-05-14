@@ -15,18 +15,13 @@ public class EmailService {
 
     public void sendOtpEmail(String toEmail, String otpCode) {
         try {
-            // Sử dụng MimeMessage thay cho SimpleMailMessage để hỗ trợ mã HTML
+
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            // Cấu hình thông tin người gửi chuẩn xác định danh
             helper.setFrom("LearningVN Platform <quizwhite212@gmail.com>");
             helper.setTo(toEmail);
             helper.setSubject("🔒 [LearningVN] Mã xác thực tài khoản của bạn");
 
-            // =================================================================
-            // TEMPLATE HTML GIAO DIỆN KHỚP 100% ẢNH THIẾT KẾ
-            // =================================================================
             String htmlContent = """
                 <!DOCTYPE html>
                 <html>
