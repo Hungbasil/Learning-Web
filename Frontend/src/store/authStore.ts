@@ -5,6 +5,7 @@ import { persist } from 'zustand/middleware'
 export interface User {
   id: number
   email: string
+  fullName: string
   role: string
   aiTokens: number
   totalXp: number

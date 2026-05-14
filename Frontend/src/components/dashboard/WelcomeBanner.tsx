@@ -3,7 +3,7 @@ import { Bot } from 'lucide-react'
 
 export function WelcomeBanner() {
   const { user } = useAuthStore()
-  const displayName = user?.email?.split('@')[0] || 'Học viên'
+  const displayName = user?.fullName || 'Học viên'
 
   return (
     <div className="relative bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 md:p-8 shadow-sm border border-blue-100 mb-6 overflow-hidden transition-all duration-300 hover:shadow-md hover:border-blue-200">

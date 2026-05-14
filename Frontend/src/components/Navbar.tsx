@@ -76,7 +76,7 @@ export function Navbar() {
                   {user.email?.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-sm font-medium text-gray-800 hidden sm:inline">
-                  {user.email?.split('@')[0]}
+                  {user.fullName}
                 </span>
               </button>
 
