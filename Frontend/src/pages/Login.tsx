@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react'
 import { axiosClient } from '@/config/axiosClient'
 import { useAuthStore } from '@/store/authStore'
@@ -26,7 +26,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const location = useLocation()
   const { setAuth } = useAuthStore()
+
+  const fromOtpSuccess = location.state?.fromOtpSuccess
+  const showVerificationMessage = location.state?.showVerificationMessage
 
   const validateEmail = (value: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -70,12 +74,12 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-3 md:p-4 relative overflow-hidden animate-fade-in">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-3 md:p-4 relative overflow-hidden">
       {/* Animated Background Blobs */}
       <div className="absolute top-0 left-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-glow"></div>
       <div className="absolute bottom-0 right-10 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-glow" style={{ animationDelay: '2s' }}></div>
       
-      <div className="w-full max-w-[320px] relative z-10 animate-fade-in">
+      <div className="w-full max-w-xs relative z-10 animate-fade-in">
         {/* Card Container */}
         <div className="backdrop-blur-md bg-white/10 rounded-2xl shadow-2xl p-6 border border-white/20 hover:border-white/40 transition-all duration-500 animate-slide-up">
           {/* Header */}
@@ -89,6 +93,14 @@ export default function Login() {
             <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-2 animate-slide-down">
               <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
               <p className="text-red-200 text-xs md:text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Verification Success Message */}
+          {showVerificationMessage && (
+            <div className="mb-4 p-3 bg-emerald-500/20 border border-emerald-500/50 rounded-lg flex items-center gap-2 animate-slide-down">
+              <AlertCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <p className="text-emerald-200 text-xs md:text-sm">Email đã được xác thực! Bạn có thể đăng nhập ngay.</p>
             </div>
           )}
 

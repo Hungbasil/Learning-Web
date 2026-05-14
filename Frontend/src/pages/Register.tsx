@@ -4,10 +4,9 @@ import { Mail, Lock, User, Loader2, AlertCircle, CheckCircle } from 'lucide-reac
 import { axiosClient } from '@/config/axiosClient'
 
 interface RegisterRequest {
-  name: string
+  fullName: string
   email: string
   password: string
-  confirmPassword: string
 }
 
 interface RegisterResponse {
@@ -63,10 +62,9 @@ export default function Register() {
     try {
       setLoading(true)
       const payload: RegisterRequest = {
-        name,
+        fullName: name,
         email,
         password,
-        confirmPassword,
       }
 
       await axiosClient.post<RegisterResponse>('/auth/register', payload)
@@ -77,10 +75,10 @@ export default function Register() {
       setPassword('')
       setConfirmPassword('')
 
-      // Redirect to login after 2 seconds
+      // Redirect to OTP verification after 1.5 seconds
       setTimeout(() => {
-        navigate('/login')
-      }, 2000)
+        navigate('/otp-verification', { state: { email } })
+      }, 1500)
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message)
@@ -93,12 +91,12 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-3 md:p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-3 md:p-4 relative overflow-hidden animate-fade-in">
       {/* Animated Background Blobs */}
       <div className="absolute top-0 right-10 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-glow"></div>
       <div className="absolute bottom-0 left-10 w-72 h-72 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-glow" style={{ animationDelay: '2s' }}></div>
       
-      <div className="w-full max-w-xs relative z-10 animate-fade-in">
+      <div className="w-full max-w-[320px] relative z-10 animate-fade-in">
         {/* Card Container */}
         <div className="backdrop-blur-md bg-white/10 rounded-2xl shadow-2xl p-6 border border-white/20 hover:border-white/40 transition-all duration-500 animate-slide-up">
           {/* Header */}
@@ -111,7 +109,7 @@ export default function Register() {
           {success && (
             <div className="mb-4 p-3 bg-emerald-500/20 border border-emerald-500/50 rounded-lg flex items-center gap-2 animate-slide-down">
               <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <p className="text-emerald-200 text-xs md:text-sm">Đăng ký thành công! Đang chuyển hướng...</p>
+              <p className="text-emerald-200 text-xs md:text-sm">Đăng ký thành công! Đang chuyển sang xác thực Email...</p>
             </div>
           )}
 
