@@ -5,7 +5,7 @@ import { PremiumBanner } from './PremiumBanner'
 
 export function Sidebar() {
   return (
-    <aside className="space-y-6">
+    <aside className="flex flex-col gap-6">
       <PersonalGoals />
       <QuickAccess />
       <Leaderboard />
