@@ -12,10 +12,10 @@ export function Navbar() {
 
   const menuItems = [
     { label: 'Trang chủ', href: '/', icon: '🏠' },
-    { label: 'Duyệt lộ trình', href: '/roadmaps', icon: '🗺️' },
+    { label: 'Lộ trình', href: '/roadmaps', icon: '🗺️' },
     { label: 'Gia sư AI', href: '/ai-tutor', icon: '🤖' },
-    { label: 'Phòng văn', href: '/interview', icon: '💬' },
-    { label: 'Học cùng tôi', href: '/study', icon: '👥' },
+    { label: 'Phòng vấn', href: '/interview', icon: '💬' },
+    { label: 'Phiên Học', href: '/study', icon: '👥' },
   ]
 
   const isActive = (href: string) => location.pathname === href

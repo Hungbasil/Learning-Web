@@ -37,7 +37,7 @@ export function PersonalGoals() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 sticky top-20 hover:shadow-md transition-shadow duration-300">
+      <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
         <div className="flex items-center gap-3 mb-5">
           <Target className="w-5 h-5 md:w-6 md:h-6 text-indigo-600" />
           <h3 className="font-bold text-gray-800">Mục tiêu cá nhân</h3>
@@ -47,12 +47,11 @@ export function PersonalGoals() {
     )
   }
 
-  // Calculate streak and trophies from goals for display
   const completedGoals = goals.filter(g => g.status === 'completed').length
   const inProgressGoals = goals.filter(g => g.status === 'in_progress').length
 
   return (
-    <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 sticky top-20 hover:shadow-md transition-shadow duration-300">
+    <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
       <div className="flex items-center gap-3 mb-5">
         <Target className="w-5 h-5 md:w-6 md:h-6 text-indigo-600" />
         <h3 className="font-bold text-gray-800">Mục tiêu cá nhân</h3>

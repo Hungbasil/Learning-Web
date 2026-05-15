@@ -157,12 +157,3 @@ export function HeatmapActivity() {
     </div>
   )
 }
-              ))}
-            </div>
-            <span>Nhiều</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
