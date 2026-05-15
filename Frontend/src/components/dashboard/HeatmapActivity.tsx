@@ -1,30 +1,54 @@
+import { useEffect, useState } from 'react'
 import { Activity } from 'lucide-react'
+import { axiosClient } from '@/config/axiosClient'
 
 interface HeatmapDay {
   date: string
   count: number
 }
 
+interface HeatmapResponse {
+  heatmapData: Record<string, number>
+  totalSessions: number
+  longestStreak: number
+  currentStreak: number
+}
+
 export function HeatmapActivity() {
   const months = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12']
   const daysOfWeek = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
 
-  // Sample data: Tạo một lưới với các ô ngẫu nhiên
-  const generateHeatmapData = () => {
-    const data: HeatmapDay[] = []
-    const today = new Date()
-    for (let i = 365; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      data.push({
-        date: date.toISOString().split('T')[0],
-        count: Math.floor(Math.random() * 5),
-      })
-    }
-    return data
-  }
+  const [heatmapData, setHeatmapData] = useState<HeatmapDay[]>([])
+  const [stats, setStats] = useState({ totalSessions: 0, longestStreak: 0, currentStreak: 0 })
+  const [loading, setLoading] = useState(true)
 
-  const heatmapData = generateHeatmapData()
+  useEffect(() => {
+    const fetchActivityData = async () => {
+      try {
+        const response = await axiosClient.get('/dashboard/activity-heatmap?days=365')
+        const data: HeatmapResponse = response.data
+
+        // Convert heatmap data to array
+        const heatmapArray: HeatmapDay[] = Object.entries(data.heatmapData).map(([date, count]) => ({
+          date,
+          count,
+        }))
+
+        setHeatmapData(heatmapArray)
+        setStats({
+          totalSessions: data.totalSessions,
+          longestStreak: data.longestStreak,
+          currentStreak: data.currentStreak,
+        })
+      } catch (error) {
+        console.error('Error fetching activity data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchActivityData()
+  }, [])
 
   const getColor = (count: number) => {
     if (count === 0) return 'bg-gray-100'
@@ -34,12 +58,22 @@ export function HeatmapActivity() {
     return 'bg-green-600'
   }
 
-  // Tính toán để hiển thị 52 tuần gần đây
-  const weeks = []
-  const recentData = heatmapData.slice(-364)
-  
-  for (let i = 0; i < recentData.length; i += 7) {
-    weeks.push(recentData.slice(i, i + 7))
+  // Group heatmap data into weeks
+  const weeks: HeatmapDay[][] = []
+  for (let i = 0; i < heatmapData.length; i += 7) {
+    weeks.push(heatmapData.slice(i, i + 7))
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 mb-6 hover:shadow-md transition-shadow duration-300">
+        <div className="flex items-center gap-3 mb-6">
+          <Activity className="w-5 h-5 md:w-6 md:h-6 text-indigo-600" />
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">Bản đồ hoạt động học tập</h2>
+        </div>
+        <p className="text-gray-500">Đang tải...</p>
+      </div>
+    )
   }
 
   return (
@@ -98,6 +132,31 @@ export function HeatmapActivity() {
                   key={level}
                   className={`w-3 h-3 ${getColor(level)} rounded-sm`}
                 />
+              ))}
+            </div>
+            <span>Nhiều</span>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2 mt-6 pt-6 border-t border-gray-100">
+            <div className="text-center">
+              <p className="text-sm font-bold text-indigo-600">{stats.currentStreak}</p>
+              <p className="text-xs text-gray-600">Chuỗi hiện tại</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-purple-600">{stats.longestStreak}</p>
+              <p className="text-xs text-gray-600">Chuỗi dài nhất</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-bold text-green-600">{stats.totalSessions}</p>
+              <p className="text-xs text-gray-600">Tổng sessions</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
               ))}
             </div>
             <span>Nhiều</span>

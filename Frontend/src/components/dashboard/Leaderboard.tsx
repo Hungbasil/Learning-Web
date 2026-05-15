@@ -1,21 +1,33 @@
+import { useEffect, useState } from 'react'
 import { Trophy, Medal } from 'lucide-react'
+import { axiosClient } from '@/config/axiosClient'
 
 interface LeaderboardEntry {
   rank: number
-  name: string
-  xp: number
-  streak: number
+  userId: number
+  fullName: string
+  totalXp: number
+  streak?: number
 }
 
 export function Leaderboard() {
-  // Dữ liệu mẫu - Top 5 học viên
-  const leaderboardData: LeaderboardEntry[] = [
-    { rank: 1, name: 'Nguyễn Văn A', xp: 5820, streak: 28 },
-    { rank: 2, name: 'Trần Thị B', xp: 5340, streak: 21 },
-    { rank: 3, name: 'Lê Minh C', xp: 4950, streak: 18 },
-    { rank: 4, name: 'Phạm Đức D', xp: 4520, streak: 15 },
-    { rank: 5, name: 'Hoàng Tuấn E', xp: 4120, streak: 12 },
-  ]
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const response = await axiosClient.get('/dashboard/leaderboard?limit=5&offset=0')
+        setLeaderboardData(response.data.data)
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchLeaderboard()
+  }, [])
 
   const getMedalIcon = (rank: number) => {
     switch (rank) {
@@ -30,6 +42,18 @@ export function Leaderboard() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
+        <div className="flex items-center gap-3 mb-5">
+          <Trophy className="w-5 h-5 md:w-6 md:h-6 text-indigo-600" />
+          <h3 className="font-bold text-gray-800">Xếp hạng tuần</h3>
+        </div>
+        <p className="text-gray-500">Đang tải...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300">
       <div className="flex items-center gap-3 mb-5">
@@ -40,7 +64,7 @@ export function Leaderboard() {
       <div className="space-y-2">
         {leaderboardData.map((entry, idx) => (
           <div
-            key={entry.rank}
+            key={entry.userId}
             className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
               idx === 0 ? 'bg-yellow-50 border border-yellow-200 hover:shadow-md' : 'hover:bg-gray-50 hover:shadow-sm'
             }`}
@@ -52,13 +76,13 @@ export function Leaderboard() {
 
             {/* Name */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-800 truncate">{entry.name}</p>
-              <p className="text-xs text-gray-500">{entry.streak} ngày liên tiếp</p>
+              <p className="text-sm font-semibold text-gray-800 truncate">{entry.fullName}</p>
+              <p className="text-xs text-gray-500">{entry.streak || 0} ngày liên tiếp</p>
             </div>
 
             {/* XP */}
             <div className="text-right flex-shrink-0">
-              <p className="text-sm font-bold text-indigo-600">{entry.xp}</p>
+              <p className="text-sm font-bold text-indigo-600">{entry.totalXp}</p>
               <p className="text-xs text-gray-500">XP</p>
             </div>
           </div>
