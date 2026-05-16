@@ -18,11 +18,16 @@ public class CourseDetailResponse {
     private String instructorName;
     private Integer totalLessons;
     private String totalDuration;
+    private Double averageRating;
+    private Integer totalReviews;
+    private Integer completionPercentage;
     private Boolean isFree;
     private String programmingLanguage;
     private String icon;
     private String bgColor;
     private Integer enrolledCount;
+    private Boolean isBookmarked;
+    private Boolean isEnrolled;
 
     private List<SectionDto> sections;
 
@@ -39,7 +44,9 @@ public class CourseDetailResponse {
         private Long id;
         private String title;
         private String videoUrl;
+        private Integer duration; // phút
         private Integer orderIndex;
         private boolean isFree;
+        private String status; // "locked", "in-progress", "completed"
     }
 }

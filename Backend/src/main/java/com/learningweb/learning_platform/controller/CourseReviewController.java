@@ -2,6 +2,7 @@ package com.learningweb.learning_platform.controller;
 
 
 import com.learningweb.learning_platform.dto.ReviewRequest;
+import com.learningweb.learning_platform.dto.ReviewResponse;
 import com.learningweb.learning_platform.dto.ReviewStatsResponse;
 import com.learningweb.learning_platform.entity.*;
 import com.learningweb.learning_platform.repository.*;
@@ -74,7 +75,8 @@ public class CourseReviewController {
 
     // API LẤY DANH SÁCH TEXT COMMENT PHÍA DƯỚI
     @GetMapping("/{courseId}/reviews")
-    public ResponseEntity<List<CourseReview>> getReviewsList(@PathVariable Long courseId) {
-        return ResponseEntity.ok(reviewRepository.findByCourseIdOrderByCreatedAtDesc(courseId));
+    public ResponseEntity<List<ReviewResponse>> getReviewsList(@PathVariable Long courseId) {
+        List<CourseReview> reviews = reviewRepository.findByCourseIdOrderByCreatedAtDesc(courseId);
+        return ResponseEntity.ok(reviews.stream().map(ReviewResponse::fromEntity).toList());
     }
 }

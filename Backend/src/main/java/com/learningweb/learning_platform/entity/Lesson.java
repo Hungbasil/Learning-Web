@@ -23,6 +23,7 @@ public class Lesson {
     @Column(columnDefinition = "TEXT")
     private String content;
     private Integer orderIndex;
+    private Integer duration; // thời lượng bài học tính bằng phút
     private boolean isFree;
 
     @ManyToOne(fetch = FetchType.LAZY)
