@@ -65,6 +65,8 @@ public class CourseController {
             // User not authenticated or not in principal
         }
 
+        final User user = currentUser;
+
         // Calculate average rating and total reviews
         Double averageRating = courseReviewRepository.getAverageRatingByCourseId(id);
         Long totalReviewsCount = courseReviewRepository.countByCourseId(id);
@@ -72,10 +74,10 @@ public class CourseController {
 
         // Calculate completion percentage
         Integer completionPercentage = 0;
-        if (currentUser != null) {
+        if (user != null) {
             Integer totalLessons = course.getTotalLessons() != null ? course.getTotalLessons() : 0;
             if (totalLessons > 0) {
-                Long completedLessons = lessonProgressRepository.countByUserIdAndCourseIdAndCompleted(currentUser.getId(), id, true);
+                Long completedLessons = lessonProgressRepository.countByUserIdAndCourseIdAndCompleted(user.getId(), id, true);
                 completionPercentage = (int) ((completedLessons * 100L) / totalLessons);
             }
         }
@@ -85,14 +87,14 @@ public class CourseController {
             List<CourseDetailResponse.LessonDto> lessonDtos = section.getLessons().stream().map(lesson -> {
                 String status = "locked"; // default status
                 
-                if (currentUser != null) {
+                if (user != null) {
                     // Check if lesson is completed
-                    boolean isCompleted = lessonProgressRepository.existsByUserIdAndLessonIdAndCompleted(currentUser.getId(), lesson.getId(), true);
+                    boolean isCompleted = lessonProgressRepository.existsByUserIdAndLessonIdAndCompleted(user.getId(), lesson.getId(), true);
                     if (isCompleted) {
                         status = "completed";
                     } else {
                         // Check if any lesson before this is completed (simple check: if first lesson or previous is completed)
-                        boolean hasStarted = lessonProgressRepository.existsByUserIdAndLessonId(currentUser.getId(), lesson.getId());
+                        boolean hasStarted = lessonProgressRepository.existsByUserIdAndLessonId(user.getId(), lesson.getId());
                         if (hasStarted || section.getLessons().indexOf(lesson) == 0) {
                             status = "in-progress";
                         }
@@ -137,8 +139,8 @@ public class CourseController {
                 .icon(course.getIcon() != null ? course.getIcon() : "💻")
                 .bgColor(course.getBgColor() != null ? course.getBgColor() : "bg-blue-100")
                 .enrolledCount(course.getEnrolledCount() != null ? course.getEnrolledCount() : 0)
-                .isBookmarked(currentUser != null && bookmarkRepository.existsByUserIdAndCourseId(currentUser.getId(), id))
-                .isEnrolled(currentUser != null && enrollmentRepository.findByUserAndCourse(currentUser, course).isPresent())
+                .isBookmarked(user != null && bookmarkRepository.existsByUserIdAndCourseId(user.getId(), id))
+                .isEnrolled(user != null && enrollmentRepository.findByUserAndCourse(user, course).isPresent())
                 .sections(sectionDtos)
                 .build();
         return ResponseEntity.ok(response);
