@@ -64,9 +64,16 @@ public class CourseController {
                 .description(course.getDescription())
                 .price(course.getPrice())
                 .imageUrl(course.getImageUrl())
-                .level(course.getLevel())
-                .categoryName(course.getCategory().getName())
-                .instructorName(course.getInstructor().getFullName())
+                .level(course.getLevel() != null ? course.getLevel() : "Cơ bản")
+                .categoryName(course.getCategory() != null ? course.getCategory().getName() : "Khác")
+                .instructorName(course.getInstructor() != null ? course.getInstructor().getFullName() : "Unknown")
+                .totalLessons(course.getTotalLessons() != null ? course.getTotalLessons() : 0)
+                .totalDuration(course.getTotalDuration() != null ? course.getTotalDuration() : "0")
+                .isFree(course.getIsFree() != null ? course.getIsFree() : (course.getPrice() == null || course.getPrice() == 0))
+                .programmingLanguage(course.getProgrammingLanguage() != null ? course.getProgrammingLanguage() : "JavaScript")
+                .icon(course.getIcon() != null ? course.getIcon() : "💻")
+                .bgColor(course.getBgColor() != null ? course.getBgColor() : "bg-blue-100")
+                .enrolledCount(course.getEnrolledCount() != null ? course.getEnrolledCount() : 0)
                 .sections(sectionDtos)
                 .build();
         return ResponseEntity.ok(response);
@@ -76,17 +83,28 @@ public class CourseController {
     public ResponseEntity<?> getAllCourses() {
 
         List<Course> courses = courseRepository.findAll();
-        List<CourseListResponse> responseList = courses.stream().map(course ->
-                CourseListResponse.builder()
-                        .id(course.getId())
-                        .title(course.getTitle())
-                        .price(course.getPrice())
-                        .imageUrl(course.getImageUrl())
-                        .level(course.getLevel())
-                        .categoryName(course.getCategory().getName())
-                        .instructorName(course.getInstructor().getFullName())
-                        .build()
-        ).collect(Collectors.toList());
+        List<CourseListResponse> responseList = courses.stream().map(course -> {
+            Boolean isFree = course.getIsFree() != null ? course.getIsFree() : (course.getPrice() == null || course.getPrice() == 0);
+            Integer enrolledCount = course.getEnrolledCount() != null ? course.getEnrolledCount() : 0;
+            
+            return CourseListResponse.builder()
+                    .id(course.getId())
+                    .title(course.getTitle())
+                    .description(course.getDescription())
+                    .price(course.getPrice())
+                    .imageUrl(course.getImageUrl())
+                    .level(course.getLevel() != null ? course.getLevel() : "Cơ bản")
+                    .categoryName(course.getCategory() != null ? course.getCategory().getName() : "Khác")
+                    .instructorName(course.getInstructor() != null ? course.getInstructor().getFullName() : "Unknown")
+                    .totalLessons(course.getTotalLessons() != null ? course.getTotalLessons() : 0)
+                    .totalDuration(course.getTotalDuration() != null ? course.getTotalDuration() : "0")
+                    .isFree(isFree)
+                    .programmingLanguage(course.getProgrammingLanguage() != null ? course.getProgrammingLanguage() : "JavaScript")
+                    .icon(course.getIcon() != null ? course.getIcon() : "💻")
+                    .bgColor(course.getBgColor() != null ? course.getBgColor() : "bg-blue-100")
+                    .enrolledCount(enrolledCount)
+                    .build();
+        }).collect(Collectors.toList());
         return ResponseEntity.ok(responseList);
     }
 

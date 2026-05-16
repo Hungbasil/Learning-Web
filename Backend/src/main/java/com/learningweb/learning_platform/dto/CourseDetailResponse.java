@@ -16,6 +16,13 @@ public class CourseDetailResponse {
     private String level;
     private String categoryName;
     private String instructorName;
+    private Integer totalLessons;
+    private String totalDuration;
+    private Boolean isFree;
+    private String programmingLanguage;
+    private String icon;
+    private String bgColor;
+    private Integer enrolledCount;
 
     private List<SectionDto> sections;
 
