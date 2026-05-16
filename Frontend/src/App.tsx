@@ -4,9 +4,9 @@ import Register from '@/pages/Register'
 import OtpVerification from '@/pages/OtpVerification'
 import Home from '@/pages/Home'
 import Roadmaps from '@/pages/Roadmaps'
+import CourseDetail from '@/pages/CourseDetail'
 import AiTutor from '@/pages/AiTutor'
 import Interview from '@/pages/Interview'
-import Stories from '@/pages/Stories'
 import Study from '@/pages/Study'
 import { useAuthStore } from '@/store/authStore'
 import { ArrowRight } from 'lucide-react'
@@ -105,9 +105,9 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/otp-verification" element={<OtpVerification />} />
         <Route path="/roadmaps" element={<Roadmaps />} />
+        <Route path="/courses/:id" element={<CourseDetail />} />
         <Route path="/ai-tutor" element={<AiTutor />} />
         <Route path="/interview" element={<Interview />} />
-        <Route path="/stories" element={<Stories />} />
         <Route path="/study" element={<Study />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

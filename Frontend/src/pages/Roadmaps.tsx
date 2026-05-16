@@ -134,8 +134,7 @@ export default function Roadmaps() {
   const totalPages = Math.ceil(filteredCourses.length / itemsPerPage)
 
   const handleViewDetails = (courseId: string) => {
-    console.log(`Viewing course: ${courseId}`)
-    // TODO: Navigate to course details page
+    navigate(`/courses/${courseId}`)
   }
 
   if (!token || !user) {
