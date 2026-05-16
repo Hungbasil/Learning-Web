@@ -12,7 +12,7 @@ export function Navbar() {
 
   const menuItems = [
     { label: 'Trang chủ', href: '/', icon: '🏠' },
-    { label: 'Lộ trình', href: '/roadmaps', icon: '🗺️' },
+    { label: 'Khóa Học', href: '/roadmaps', icon: '🗺️' },
     { label: 'Gia sư AI', href: '/ai-tutor', icon: '🤖' },
     { label: 'Phòng vấn', href: '/interview', icon: '💬' },
     { label: 'Phiên Học', href: '/study', icon: '👥' },
