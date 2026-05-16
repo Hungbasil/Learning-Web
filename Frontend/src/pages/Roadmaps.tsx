@@ -1,177 +1,50 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
+import { axiosClient } from '@/config/axiosClient'
 import { Layout } from '@/components/Layout'
 import CourseCard, { type Course } from '@/components/roadmaps/CourseCard'
 import { Search, Grid3x3, List, ChevronLeft, ChevronRight } from 'lucide-react'
 
-const DUMMY_COURSES: Course[] = [
-  {
-    id: '1',
-    title: 'Lộ trình JavaScript từ Cơ bản đến Nâng cao',
-    description: 'Lộ trình 9 tuần giúp người mới bắt đầu học JavaScriptcó thể sử dụng JavaScript để xây dựng các ứng dụng web.',
-    level: 'Cơ bản',
+// API Response Type
+interface CourseAPIResponse {
+  id: number
+  title: string
+  description: string
+  level: string
+  imageUrl: string
+  price: number
+  isFree: boolean
+  programmingLanguage: string
+  categoryName: string
+  instructorName: string
+  totalLessons: number
+  totalDuration: string
+  icon: string
+  bgColor: string
+  enrolledCount: number
+}
+
+// Fetch courses from API
+const fetchCourses = async (): Promise<Course[]> => {
+  const response = await axiosClient.get<CourseAPIResponse[]>('/courses')
+  return response.data.map((course) => ({
+    id: course.id.toString(),
+    title: course.title,
+    description: course.description,
+    level: (course.level as 'Cơ bản' | 'Trung cấp' | 'Nâng cao') || 'Cơ bản',
     language: 'Tiếng Việt',
-    programmingLanguage: 'JavaScript',
-    techStack: ['JavaScript'],
-    duration: 32,
-    lessons: 362,
-    enrolled: 18234,
-    bgColor: 'bg-yellow-100',
-    icon: '🌍',
-    isFree: true,
-  },
-  {
-    id: '2',
-    title: 'Lộ trình Python từ Cơ bản đến Nâng cao',
-    description: 'Lộ trình 12 tuần giúp người mới bắt đầu học Python có thể sử dụng Python để xây dựng các ứng dụng web.',
-    level: 'Cơ bản',
-    language: 'Tiếng Việt',
-    programmingLanguage: 'Python',
-    techStack: ['Python'],
-    duration: 45,
-    lessons: 420,
-    enrolled: 22150,
-    bgColor: 'bg-green-100',
-    icon: '🐍',
-    isFree: true,
-  },
-  {
-    id: '3',
-    title: 'Lộ trình học C++ từ Cơ bản đến Nâng cao',
-    description: 'Lộ trình hệ thống 16 tuần giúp bạn nắm sâu C++ có thể sử dụng C++ để xây dựng các ứng dụng phức tạp.',
-    level: 'Cơ bản',
-    language: 'Tiếng Việt',
-    programmingLanguage: 'C++',
-    techStack: ['C++'],
-    duration: 58,
-    lessons: 230,
-    enrolled: 12890,
-    bgColor: 'bg-blue-100',
-    icon: '⚙️',
-    isFree: false,
-  },
-  {
-    id: '4',
-    title: 'Lộ trình học React từ Cơ bản đến Nâng cao',
-    description: 'Lộ trình 8 tuần giúp bạn nắm sâu React. Học cách xây dựng các ứng dụng web hiện đại với React.',
-    level: 'Trung cấp',
-    language: 'Tiếng Việt',
-    programmingLanguage: 'JavaScript',
-    techStack: ['React', 'JavaScript'],
-    duration: 42,
-    lessons: 167,
-    enrolled: 15234,
-    bgColor: 'bg-cyan-100',
-    icon: '⚛️',
-    isFree: false,
-  },
-  {
-    id: '5',
-    title: 'Lộ trình Java Developer - Từ Intermediate đến Job-ready',
-    description: 'Lộ trình 12 tuần luyện tập hướng chuẩn đầu vào kỳ tuyển dụng. Phát triển kỹ năng Java Developer theo chuẩn đầu vào của các công ty công nghệ lớn.',
-    level: 'Trung cấp',
-    language: 'Tiếng Việt',
-    programmingLanguage: 'Java',
-    techStack: ['Java'],
-    duration: 170,
-    lessons: 336,
-    enrolled: 8923,
-    bgColor: 'bg-red-100',
-    icon: '🚀',
-    isFree: false,
-  },
-  {
-    id: '6',
-    title: 'Lộ trình nâng cao kỹ năng Python cho lập trình viên',
-    description: 'Lộ trình 4 tuần tập trung vào các chủ đề nâng cao: Lập trình hàm, xử lý ngoại lệ, lập trình đa luồng, lập trình mạng và xử lý dữ liệu lớn.',
-    level: 'Nâng cao',
-    language: 'Tiếng Việt',
-    programmingLanguage: 'Python',
-    techStack: ['Python'],
-    duration: 40,
-    lessons: 122,
-    enrolled: 5234,
-    bgColor: 'bg-indigo-100',
-    icon: '🎯',
-    isFree: false,
-  },
-  {
-    id: '7',
-    title: 'Lộ trình Machine Learning cho Developer',
-    description: 'Lộ trình toàn diện về Machine Learning từ cơ bản đến nâng cao, giúp bạn xây dựng các mô hình ML cho sản phẩm thực tế.',
-    level: 'Nâng cao',
-    language: 'Tiếng Việt',
-    programmingLanguage: 'Python',
-    techStack: ['Machine Learning', 'Python'],
-    duration: 112,
-    lessons: 111,
-    enrolled: 3456,
-    bgColor: 'bg-amber-100',
-    icon: '🤖',
-    isFree: false,
-  },
-  {
-    id: '8',
-    title: 'Lộ trình JavaScript Fullstack từ Cơ bản đến Ứng dụng Web',
-    description: 'Lộ trình 12 tuần giải giúp bạn trở thành Full-stack Developer sử dụng JavaScript, giúp xây dựng các ứng dụng web đầy đủ.',
-    level: 'Cơ bản',
-    language: 'Tiếng Việt',
-    programmingLanguage: 'JavaScript',
-    techStack: ['JavaScript'],
-    duration: 120,
-    lessons: 102,
-    enrolled: 8234,
-    bgColor: 'bg-pink-100',
-    icon: '💻',
-    isFree: true,
-  },
-  {
-    id: '9',
-    title: 'Lộ trình học Flutter từ Cơ bản đến Nâng cao',
-    description: 'Lộ trình 8 tuần hành học Flutter. Học cách xây dựng các ứng dụng di động đa nền tảng với Flutter.',
-    level: 'Cơ bản',
-    language: 'Tiếng Việt',
-    programmingLanguage: 'Dart',
-    techStack: ['Flutter'],
-    duration: 50,
-    lessons: 106,
-    enrolled: 2341,
-    bgColor: 'bg-teal-100',
-    icon: '📱',
-    isFree: true,
-  },
-  {
-    id: '10',
-    title: 'Lộ trình học C# từ Beginner đến Job-ready Development',
-    description: 'Lộ trình 8 tuần hành học C#. Sau khóa học này bạn sẽ hiểu rõ nhất những kiến thức nền tảng của C#.',
-    level: 'Cơ bản',
-    language: 'Tiếng Việt',
-    programmingLanguage: 'C#',
-    techStack: ['C#'],
-    duration: 100,
-    lessons: 100,
-    enrolled: 2341,
-    bgColor: 'bg-violet-100',
-    icon: '🎮',
-    isFree: true,
-  },
-  {
-    id: '11',
-    title: 'Lộ trình học Java từ Cơ bản đến Nâng cao',
-    description: 'Lộ trình 12 tuần hoàn hảo để học Java. Sau khóa học này bạn sẽ trở thành Java Developer chuyên nghiệp.',
-    level: 'Cơ bản',
-    language: 'Tiếng Việt',
-    programmingLanguage: 'Java',
-    techStack: ['Java'],
-    duration: 74,
-    lessons: 290,
-    enrolled: 9867,
-    bgColor: 'bg-orange-100',
-    icon: '☕',
-    isFree: true,
-  },
-]
+    programmingLanguage: course.programmingLanguage || 'JavaScript',
+    techStack: course.programmingLanguage ? [course.programmingLanguage] : ['JavaScript'],
+    duration: parseInt(course.totalDuration) || 0,
+    lessons: course.totalLessons || 0,
+    enrolled: course.enrolledCount || 0,
+    bgColor: course.bgColor || 'bg-blue-100',
+    icon: course.icon || '💻',
+    isFree: course.isFree ?? false,
+  }))
+}
 
 interface FilterState {
   search: string
@@ -198,8 +71,15 @@ export default function Roadmaps() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 12
 
+  // Fetch courses from Backend API
+  const { data: courses = [], isLoading, error } = useQuery<Course[]>({
+    queryKey: ['courses'],
+    queryFn: fetchCourses,
+    enabled: !!token,
+  })
+
   const filteredCourses = useMemo(() => {
-    let result = DUMMY_COURSES
+    let result = courses
 
     // Filter by search
     if (filters.search) {
@@ -244,7 +124,7 @@ export default function Roadmaps() {
     }
 
     return result
-  }, [filters])
+  }, [filters, courses])
 
   const paginatedCourses = useMemo(() => {
     const startIdx = (currentPage - 1) * itemsPerPage
@@ -433,21 +313,37 @@ export default function Roadmaps() {
         </div>
 
         {/* Course Grid */}
-        <div
-          className={
-            filters.viewMode === 'grid'
-              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8'
-              : 'space-y-4 mb-8'
-          }
-        >
-          {paginatedCourses.map((course) => (
-            <CourseCard
-              key={course.id}
-              course={course}
-              onViewDetails={handleViewDetails}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-gray-200 animate-pulse rounded-xl h-96"
+              />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center mb-8">
+            <p className="text-red-700 font-semibold">Lỗi: Không thể tải danh sách khóa học</p>
+            <p className="text-red-600 text-sm mt-2">{error instanceof Error ? error.message : 'Vui lòng thử lại sau'}</p>
+          </div>
+        ) : (
+          <div
+            className={
+              filters.viewMode === 'grid'
+                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8'
+                : 'space-y-4 mb-8'
+            }
+          >
+            {paginatedCourses.map((course) => (
+              <CourseCard
+                key={course.id}
+                course={course}
+                onViewDetails={handleViewDetails}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Empty State */}
         {paginatedCourses.length === 0 && (
