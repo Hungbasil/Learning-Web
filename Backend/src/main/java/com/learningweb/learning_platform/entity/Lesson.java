@@ -3,6 +3,7 @@ package com.learningweb.learning_platform.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 @Entity
 @Table(name = "lessons")
@@ -29,4 +30,13 @@ public class Lesson {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "section_id")
     private Section section;
+
+    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL)
+    private List<LessonMaterial> materials;
+
+    @OneToOne(mappedBy = "lesson", cascade = CascadeType.ALL)
+    private Quiz quiz;
+
+    @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL)
+    private List<CodeChallenge> challenges;
 }
