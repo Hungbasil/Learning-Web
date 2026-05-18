@@ -206,7 +206,8 @@ function StatCard({
   )
 }
 
-function CurriculumSection({ sections, courseTitle }: { sections: Section[]; courseTitle: string }) {
+function CurriculumSection({ sections, courseTitle, courseId }: { sections: Section[]; courseTitle: string; courseId?: number }) {
+  const navigate = useNavigate()
   const [expandedSections, setExpandedSections] = useState<number[]>(sections.length > 0 ? [sections[0].id] : [])
   const totalLessons = useMemo(() => sections.reduce((sum, s) => sum + s.lessons.length, 0), [sections])
 
@@ -227,6 +228,10 @@ function CurriculumSection({ sections, courseTitle }: { sections: Section[]; cou
       default:
         return null
     }
+  }
+
+  const handleLessonClick = (lessonId: number) => {
+    navigate(`/courses/${courseId}/lessons/${lessonId}`)
   }
 
   return (
@@ -272,6 +277,7 @@ function CurriculumSection({ sections, courseTitle }: { sections: Section[]; cou
                   {section.lessons.map((lesson) => (
                     <div
                       key={lesson.id}
+                      onClick={() => handleLessonClick(lesson.id)}
                       className="flex items-start gap-3 p-3 rounded-lg hover:bg-white hover:shadow-sm transition-all cursor-pointer group"
                     >
                       {getStatusIcon(lesson.status)}
@@ -604,7 +610,7 @@ export default function CourseDetail() {
           <StatsBar course={course} />
 
           {/* Curriculum Section */}
-          <CurriculumSection sections={course.sections} courseTitle={course.title} />
+          <CurriculumSection sections={course.sections} courseTitle={course.title} courseId={course.id} />
 
           {/* Review Section */}
           <ReviewSection courseId={course.id} isEnrolled={course.isEnrolled} />
