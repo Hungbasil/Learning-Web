@@ -208,30 +208,18 @@ function StatCard({
 
 function CurriculumSection({ sections, courseTitle, courseId }: { sections: Section[]; courseTitle: string; courseId?: number }) {
   const navigate = useNavigate()
-  const [expandedSections, setExpandedSections] = useState<number[]>(sections.length > 0 ? [sections[0].id] : [])
   const totalLessons = useMemo(() => sections.reduce((sum, s) => sum + s.lessons.length, 0), [sections])
 
-  const toggleSection = (sectionId: number) => {
-    setExpandedSections((prev) =>
-      prev.includes(sectionId) ? prev.filter((id) => id !== sectionId) : [...prev, sectionId]
-    )
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle size={18} className="text-green-500 flex-shrink-0" />
-      case 'in-progress':
-        return <PlayCircle size={18} className="text-blue-500 flex-shrink-0" />
-      case 'locked':
-        return <Lock size={18} className="text-gray-400 flex-shrink-0" />
-      default:
-        return null
+  const handleSectionClick = (section: Section) => {
+    // Click vào section → navigate tới lesson đầu tiên
+    if (section.lessons && section.lessons.length > 0) {
+      navigate(`/courses/${courseId}/lessons/${section.lessons[0].id}`)
     }
   }
 
-  const handleLessonClick = (lessonId: number) => {
-    navigate(`/courses/${courseId}/lessons/${lessonId}`)
+  // Tính toán tổng thời lượng per section
+  const getSectionDuration = (section: Section) => {
+    return section.lessons.reduce((sum, lesson) => sum + (lesson.duration || 0), 0)
   }
 
   return (
@@ -248,53 +236,43 @@ function CurriculumSection({ sections, courseTitle, courseId }: { sections: Sect
           <p className="text-center text-gray-500 py-8">Chưa có chương trình học</p>
         ) : (
           sections.map((section) => (
-            <div key={section.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-              {/* Section Header */}
-              <button
-                onClick={() => toggleSection(section.id)}
-                className="w-full flex items-center justify-between bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-150 p-4 transition-colors"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-semibold text-sm flex-shrink-0">
+            <button
+              key={section.id}
+              onClick={() => handleSectionClick(section)}
+              className="w-full text-left border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all group"
+            >
+              <div className="flex items-center justify-between bg-white hover:bg-gray-50 p-5 transition-colors">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  {/* Section Number */}
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-blue-500 text-white font-bold text-lg flex-shrink-0">
                     {section.orderIndex || sections.indexOf(section) + 1}
                   </div>
-                  <div className="text-left">
-                    <h3 className="font-semibold text-gray-900">{section.title}</h3>
-                    <p className="text-sm text-gray-600">Gồm {section.lessons.length} bài học</p>
-                  </div>
-                </div>
-                <ChevronDown
-                  size={20}
-                  className={`text-gray-600 transition-transform flex-shrink-0 ${
-                    expandedSections.includes(section.id) ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
 
-              {/* Lessons List */}
-              {expandedSections.includes(section.id) && (
-                <div className="bg-gray-50 border-t border-gray-200 p-4 space-y-2">
-                  {section.lessons.map((lesson) => (
-                    <div
-                      key={lesson.id}
-                      onClick={() => handleLessonClick(lesson.id)}
-                      className="flex items-start gap-3 p-3 rounded-lg hover:bg-white hover:shadow-sm transition-all cursor-pointer group"
-                    >
-                      {getStatusIcon(lesson.status)}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-800 group-hover:text-blue-600 truncate">{lesson.title}</p>
-                        <p className="text-sm text-gray-500">{lesson.duration} phút</p>
-                      </div>
-                      <span className="text-xs font-semibold text-gray-500 whitespace-nowrap ml-2">
-                        {lesson.status === 'completed' && 'Đã xong'}
-                        {lesson.status === 'in-progress' && 'Đang học'}
-                        {lesson.status === 'locked' && 'Khóa'}
+                  {/* Section Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 text-base group-hover:text-blue-600 transition-colors truncate">
+                      {section.title}
+                    </h3>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                      <span className="flex items-center gap-1 flex-shrink-0">
+                        <Clock size={14} />
+                        {getSectionDuration(section)}h
+                      </span>
+                      <span className="flex items-center gap-1 flex-shrink-0">
+                        <BookOpen size={14} />
+                        {section.lessons.length} chủ đề phụ
                       </span>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Chevron Icon */}
+                <ChevronDown
+                  size={24}
+                  className="text-gray-400 group-hover:text-gray-600 flex-shrink-0 rotate-90 transition-transform"
+                />
+              </div>
+            </button>
           ))
         )}
       </div>
