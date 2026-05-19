@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Layout } from '@/components/Layout'
 import { axiosClient } from '@/config/axiosClient'
+import { useAuthStore } from '@/store/authStore'
 
 // ============ INTERFACES ============
 interface LessonMaterial {
@@ -98,17 +99,58 @@ interface LessonDetailResponse {
 export function LessonDetail() {
   const { courseId, lessonId } = useParams()
   const navigate = useNavigate()
+  const { token, _hydrated } = useAuthStore()
   const [activeTab, setActiveTab] = useState<'materials' | 'quiz' | 'challenges'>('materials')
   const [expandedSection, setExpandedSection] = useState<number | null>(null)
 
-  const { data: lesson, isLoading, isError } = useQuery({
+  const { data: lesson, isLoading, isError, error } = useQuery({
     queryKey: ['lesson', lessonId],
     queryFn: async () => {
-      const response = await axiosClient.get(`/api/lessons/${lessonId}`)
-      return response.data as LessonDetailResponse
+      try {
+        const response = await axiosClient.get(`/lessons/${lessonId}`)
+        return response.data as LessonDetailResponse
+      } catch (err: any) {
+        console.error('Error fetching lesson:', err)
+        // Nếu 401 Unauthorized, throw error để xử lý
+        if (err.response?.status === 401) {
+          throw new Error('Unauthorized')
+        }
+        throw err
+      }
     },
-    enabled: !!lessonId,
+    enabled: !!lessonId && !!token && !!_hydrated,
+    retry: 1,
   })
+
+  // Nếu chưa hydrate xong, show loading
+  if (!_hydrated) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-gray-500">Đang tải dữ liệu...</div>
+        </div>
+      </Layout>
+    )
+  }
+
+  // Nếu không có token, redirect về login
+  if (!token) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Bạn cần đăng nhập</h2>
+            <button
+              onClick={() => navigate('/login')}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Đi tới đăng nhập
+            </button>
+          </div>
+        </div>
+      </Layout>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -124,7 +166,30 @@ export function LessonDetail() {
     return (
       <Layout>
         <div className="min-h-screen flex items-center justify-center">
-          <div className="text-red-500">Không thể tải bài học</div>
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-red-500 mb-4">Lỗi tải bài học</h2>
+            <p className="text-gray-600 mb-4">
+              {error?.message === 'Unauthorized' 
+                ? 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.'
+                : error?.message || 'Không thể tải bài học'}
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => navigate(`/courses/${courseId}`)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Quay lại khóa học
+              </button>
+              {error?.message === 'Unauthorized' && (
+                <button
+                  onClick={() => navigate('/login')}
+                  className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                >
+                  Đăng nhập lại
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </Layout>
     )

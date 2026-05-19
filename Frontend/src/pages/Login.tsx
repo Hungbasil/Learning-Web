@@ -14,6 +14,7 @@ interface LoginResponse {
   user: {
     id: number
     email: string
+    fullName: string
     role: string
     aiTokens: number
     totalXp: number
@@ -59,6 +60,9 @@ export default function Login() {
 
       const { token, user } = response.data
       setAuth(token, user)
+      
+      // Đợi một chút để persist lưu token vào localStorage
+      await new Promise(resolve => setTimeout(resolve, 100))
       
       // Redirect to home
       navigate('/')
