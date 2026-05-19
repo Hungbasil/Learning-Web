@@ -139,6 +139,37 @@ export function LessonDetail() {
     enabled: !!courseId && !!token && !!_hydrated,
   })
 
+  // Fetch course info
+  const { data: courseInfo } = useQuery({
+    queryKey: ['courseInfo', courseId],
+    queryFn: async () => {
+      try {
+        const response = await axiosClient.get(`/courses/${courseId}`)
+        return response.data as any
+      } catch (err) {
+        console.error('Error fetching course info:', err)
+        return null
+      }
+    },
+    enabled: !!courseId && !!token && !!_hydrated,
+  })
+
+  // Tính toán total lessons từ sections
+  const totalLessons = useMemo(() => {
+    return courseSections.reduce((sum, section) => sum + (section.lessons?.length || 0), 0)
+  }, [courseSections])
+
+  // Tính toán completion percentage từ lesson.status
+  const { completedLessons, completionPercentage } = useMemo(() => {
+    const allLessons = courseSections.flatMap(s => s.lessons || [])
+    const completed = allLessons.filter((l: any) => l.status === 'completed').length
+    const total = allLessons.length || 1
+    return {
+      completedLessons: completed,
+      completionPercentage: total > 0 ? Math.round((completed / total) * 100) : 0
+    }
+  }, [courseSections])
+
   // Fetch comments
   const { data: comments = [] } = useQuery({
     queryKey: ['lessonComments', lessonId],
@@ -231,56 +262,86 @@ export function LessonDetail() {
     <Layout>
       <div className="min-h-screen bg-gray-50 flex">
         {/* SIDEBAR - Left */}
-        <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto hidden lg:block">
-          <div className="sticky top-0 bg-white border-b border-gray-100 p-4">
-            <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900 text-sm mb-3">
-              <ChevronDown size={18} className="rotate-90" />
-              <span className="font-semibold">Tổng quan khóa học</span>
-            </button>
-            <h3 className="text-xs font-bold text-gray-900">Chương trình học</h3>
+        <div className="w-72 bg-white border-r border-gray-200 overflow-y-auto hidden lg:block">
+          {/* Course Title & Progress - Sticky Header */}
+          <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex-shrink-0"></div>
+              <h2 className="text-sm font-bold text-gray-900 line-clamp-2">
+                {courseInfo?.title || 'Đang tải...'}
+              </h2>
+            </div>
+            
+            {/* Overall Progress */}
+            <div className="bg-gray-50 rounded p-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-600">
+                  {completedLessons}/{totalLessons} bài học
+                </p>
+                <span className="text-xs font-bold text-orange-500">
+                  {completionPercentage}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-300 rounded-full h-1.5 overflow-hidden">
+                <div 
+                  className="bg-orange-500 h-full rounded-full transition-all duration-300" 
+                  style={{ width: `${completionPercentage}%` }}
+                ></div>
+              </div>
+            </div>
           </div>
 
-          <div className="p-2">
+          {/* Sections List */}
+          <div className="p-3">
             {courseSections.length > 0 ? (
               <div className="space-y-1">
-                {courseSections.map((section) => {
-                  const totalLessons = section.lessons?.length || 0
+                {courseSections.map((section, idx) => {
+                  const totalLessonsInSection = section.lessons?.length || 0
+                  const completedInSection = section.lessons?.filter((l: any) => l.status === 'completed').length || 0
+                  const isExpanded = expandedSection === section.id
                   
                   return (
                     <div key={section.id}>
+                      {/* Section Header */}
                       <button
-                        onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+                        onClick={() => setExpandedSection(isExpanded ? null : section.id)}
                         className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded transition text-left group"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-700 group-hover:text-gray-900 truncate">
-                            {section.title}
+                        
+                          <p className="text-sm font-medium text-gray-900 group-hover:text-gray-900">
+                              {section.title}
                           </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            0/{totalLessons}
+                          
+                          <p className="text-xs text-gray-500 mt-1">
+                            {completedInSection}/{totalLessonsInSection}
                           </p>
                         </div>
                         <ChevronDown
-                          size={16}
+                          size={18}
                           className={`flex-shrink-0 text-gray-400 transition-transform ${
-                            expandedSection === section.id ? 'rotate-180' : ''
+                            isExpanded ? 'rotate-180' : ''
                           }`}
                         />
                       </button>
 
-                      {expandedSection === section.id && section.lessons && section.lessons.length > 0 && (
-                        <div className="ml-2 bg-gray-50 rounded my-1 overflow-hidden">
-                          {section.lessons.map((l) => (
+                      {/* Lessons List - Expandable */}
+                      {isExpanded && section.lessons && section.lessons.length > 0 && (
+                        <div className="ml-3 my-1 space-y-0.5 bg-gray-50 rounded py-2 px-2">
+                          {section.lessons.map((lessonItem: any, lessonIdx: number) => (
                             <button
-                              key={l.id}
-                              onClick={() => navigate(`/courses/${courseId}/lessons/${l.id}`)}
-                              className={`w-full text-left px-3 py-2 text-xs transition border-l-2 ${
-                                l.id === parseInt(lessonId || '0')
-                                  ? 'bg-blue-50 text-blue-700 border-blue-500 font-medium'
-                                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
+                              key={lessonItem.id}
+                              onClick={() => navigate(`/courses/${courseId}/lessons/${lessonItem.id}`)}
+                              className={`w-full text-left px-3 py-2 rounded text-xs transition flex items-center gap-2 ${
+                                lessonItem.id === parseInt(lessonId || '0')
+                                  ? 'bg-blue-100 text-blue-700 font-medium'
+                                  : 'text-gray-600 hover:bg-gray-100'
                               }`}
                             >
-                              {l.title}
+                              <span className="flex-shrink-0">
+                                {lessonItem.status === 'completed' ? '✓' : '○'}
+                              </span>
+                              <span className="truncate">{lessonIdx + 1}. {lessonItem.title}</span>
                             </button>
                           ))}
                         </div>
