@@ -15,6 +15,8 @@ import {
   Bookmark,
 } from 'lucide-react'
 import { Layout } from '@/components/Layout'
+import { QuizTest } from '@/components/QuizTest'
+import { CodeChallengeTest } from '@/components/CodeChallengeTest'
 import { axiosClient } from '@/config/axiosClient'
 import { useAuthStore } from '@/store/authStore'
 
@@ -100,7 +102,7 @@ export function LessonDetail() {
   const { courseId, lessonId } = useParams()
   const navigate = useNavigate()
   const { token, _hydrated } = useAuthStore()
-  const [activeTab, setActiveTab] = useState<'materials' | 'quiz' | 'challenges'>('materials')
+  const [activeTab, setActiveTab] = useState<'materials' | 'quiz' | 'challenges' | 'comments'>('materials')
   const [expandedSection, setExpandedSection] = useState<number | null>(null)
 
   const { data: lesson, isLoading, isError, error } = useQuery({
@@ -120,6 +122,36 @@ export function LessonDetail() {
     },
     enabled: !!lessonId && !!token && !!_hydrated,
     retry: 1,
+  })
+
+  // Fetch course sections để hiện sidebar
+  const { data: courseSections = [] } = useQuery<Section[]>({
+    queryKey: ['courseSections', courseId],
+    queryFn: async () => {
+      try {
+        const response = await axiosClient.get(`/courses/${courseId}`)
+        return response.data.sections || []
+      } catch (err) {
+        console.error('Error fetching course sections:', err)
+        return []
+      }
+    },
+    enabled: !!courseId && !!token && !!_hydrated,
+  })
+
+  // Fetch comments
+  const { data: comments = [] } = useQuery({
+    queryKey: ['lessonComments', lessonId],
+    queryFn: async () => {
+      try {
+        const response = await axiosClient.get(`/lessons/${lessonId}/comments`)
+        return response.data || []
+      } catch (err) {
+        console.error('Error fetching comments:', err)
+        return []
+      }
+    },
+    enabled: !!lessonId && !!token && !!_hydrated,
   })
 
   // Nếu chưa hydrate xong, show loading
@@ -199,45 +231,66 @@ export function LessonDetail() {
     <Layout>
       <div className="min-h-screen bg-gray-50 flex">
         {/* SIDEBAR - Left */}
-        <div className="w-64 bg-white border-r border-gray-200 p-4 overflow-y-auto hidden lg:block">
-          <div className="mb-4">
-            <h3 className="text-sm font-bold text-gray-900 mb-3">Chương trình học</h3>
-            {lesson.section && (
-              <div className="space-y-2">
-                <button
-                  onClick={() => setExpandedSection(expandedSection === lesson.section!.id ? null : lesson.section!.id)}
-                  className="w-full flex items-center justify-between p-2 hover:bg-gray-100 rounded transition"
-                >
-                  <span className="text-xs font-semibold text-gray-700">{lesson.section.title}</span>
-                  <ChevronDown
-                    size={16}
-                    className={`transition-transform ${expandedSection === lesson.section.id ? 'rotate-180' : ''}`}
-                  />
-                </button>
+        <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto hidden lg:block">
+          <div className="sticky top-0 bg-white border-b border-gray-100 p-4">
+            <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900 text-sm mb-3">
+              <ChevronDown size={18} className="rotate-90" />
+              <span className="font-semibold">Tổng quan khóa học</span>
+            </button>
+            <h3 className="text-xs font-bold text-gray-900">Chương trình học</h3>
+          </div>
 
-                {expandedSection === lesson.section.id && (
-                  <div className="ml-2 space-y-1">
-                    {lesson.section.lessons.map((l) => (
+          <div className="p-2">
+            {courseSections.length > 0 ? (
+              <div className="space-y-1">
+                {courseSections.map((section) => {
+                  const totalLessons = section.lessons?.length || 0
+                  
+                  return (
+                    <div key={section.id}>
                       <button
-                        key={l.id}
-                        onClick={() => navigate(`/courses/${courseId}/lessons/${l.id}`)}
-                        className={`w-full text-left p-2 rounded text-xs transition ${
-                          l.id === lesson.id
-                            ? 'bg-blue-100 text-blue-700 font-semibold'
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
+                        onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+                        className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded transition text-left group"
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold w-5 h-5 flex items-center justify-center">
-                            {l.orderIndex}
-                          </span>
-                          <span className="truncate">{l.title}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-700 group-hover:text-gray-900 truncate">
+                            {section.title}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            0/{totalLessons}
+                          </p>
                         </div>
+                        <ChevronDown
+                          size={16}
+                          className={`flex-shrink-0 text-gray-400 transition-transform ${
+                            expandedSection === section.id ? 'rotate-180' : ''
+                          }`}
+                        />
                       </button>
-                    ))}
-                  </div>
-                )}
+
+                      {expandedSection === section.id && section.lessons && section.lessons.length > 0 && (
+                        <div className="ml-2 bg-gray-50 rounded my-1 overflow-hidden">
+                          {section.lessons.map((l) => (
+                            <button
+                              key={l.id}
+                              onClick={() => navigate(`/courses/${courseId}/lessons/${l.id}`)}
+                              className={`w-full text-left px-3 py-2 text-xs transition border-l-2 ${
+                                l.id === parseInt(lessonId || '0')
+                                  ? 'bg-blue-50 text-blue-700 border-blue-500 font-medium'
+                                  : 'text-gray-600 hover:bg-gray-100 border-transparent'
+                              }`}
+                            >
+                              {l.title}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
+            ) : (
+              <p className="text-xs text-gray-500 text-center py-8">Chưa có chương trình học</p>
             )}
           </div>
         </div>
@@ -289,7 +342,7 @@ export function LessonDetail() {
               <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
               <div>
                 <h3 className="font-semibold text-yellow-900 mb-1">Trang thái hoàn thành</h3>
-                <p className="text-sm text-yellow-800">Vượt qua 4 nhật một bài kiểm tra</p>
+                <p className="text-sm text-yellow-800">Vượt qua ít nhất 1 bài kiểm tra</p>
               </div>
             </div>
           </div>
@@ -328,42 +381,47 @@ export function LessonDetail() {
             <div className="flex border-b border-gray-200">
               <button
                 onClick={() => setActiveTab('materials')}
-                className={`flex-1 py-3 px-4 font-medium text-sm transition border-b-2 ${
+                className={`flex-1 py-3 px-4 font-medium text-sm transition border-b-2 flex items-center justify-center gap-2 ${
                   activeTab === 'materials'
                     ? 'text-orange-500 border-orange-500'
                     : 'text-gray-600 border-transparent hover:text-gray-900'
                 }`}
               >
-                <div className="flex items-center justify-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Tài liệu học tập
-                </div>
+                <FileText className="w-4 h-4" />
+                Tài liệu học tập
               </button>
               <button
                 onClick={() => setActiveTab('quiz')}
-                className={`flex-1 py-3 px-4 font-medium text-sm transition border-b-2 ${
+                className={`flex-1 py-3 px-4 font-medium text-sm transition border-b-2 flex items-center justify-center gap-2 ${
                   activeTab === 'quiz'
                     ? 'text-orange-500 border-orange-500'
                     : 'text-gray-600 border-transparent hover:text-gray-900'
                 }`}
               >
-                <div className="flex items-center justify-center gap-2">
-                  <CheckCircle className="w-4 h-4" />
-                  Bài kiểm tra
-                </div>
+                <CheckCircle className="w-4 h-4" />
+                Bài kiểm tra
               </button>
               <button
                 onClick={() => setActiveTab('challenges')}
-                className={`flex-1 py-3 px-4 font-medium text-sm transition border-b-2 ${
+                className={`flex-1 py-3 px-4 font-medium text-sm transition border-b-2 flex items-center justify-center gap-2 ${
                   activeTab === 'challenges'
                     ? 'text-orange-500 border-orange-500'
                     : 'text-gray-600 border-transparent hover:text-gray-900'
                 }`}
               >
-                <div className="flex items-center justify-center gap-2">
-                  <Code className="w-4 h-4" />
-                  Thử thách lập trình
-                </div>
+                <Code className="w-4 h-4" />
+                Thử thách Code
+              </button>
+              <button
+                onClick={() => setActiveTab('comments')}
+                className={`flex-1 py-3 px-4 font-medium text-sm transition border-b-2 flex items-center justify-center gap-2 ${
+                  activeTab === 'comments'
+                    ? 'text-orange-500 border-orange-500'
+                    : 'text-gray-600 border-transparent hover:text-gray-900'
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                Thảo luận
               </button>
             </div>
 
@@ -372,8 +430,9 @@ export function LessonDetail() {
               {activeTab === 'materials' && (
                 <MaterialsTab materials={lesson.materials} lessonContent={lesson.content} />
               )}
-              {activeTab === 'quiz' && <QuizTab quiz={lesson.quiz} />}
-              {activeTab === 'challenges' && <ChallengesTab challenges={lesson.challenges} />}
+              {activeTab === 'quiz' && <QuizTab quiz={lesson.quiz} lessonId={parseInt(lessonId || '0')} />}
+              {activeTab === 'challenges' && <ChallengesTab challenges={lesson.challenges} lessonId={parseInt(lessonId || '0')} />}
+              {activeTab === 'comments' && <CommentsTab lessonId={parseInt(lessonId || '0')} comments={comments} />}
             </div>
           </div>
         </div>
@@ -441,7 +500,9 @@ function MaterialsTab({
   )
 }
 
-function QuizTab({ quiz }: { quiz: QuizInfo | null }) {
+function QuizTab({ quiz, lessonId }: { quiz: QuizInfo | null; lessonId: number }) {
+  const [started, setStarted] = useState(false)
+
   if (!quiz) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -451,93 +512,253 @@ function QuizTab({ quiz }: { quiz: QuizInfo | null }) {
     )
   }
 
+  if (started) {
+    return <QuizTest quiz={quiz} lessonId={lessonId} />
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="bg-blue-50 p-4 rounded border border-blue-200">
-        <h3 className="font-bold text-blue-900">{quiz.title}</h3>
-        <div className="flex gap-6 text-sm mt-2 text-blue-800">
-          <span>Câu hỏi: {quiz.totalQuestions}</span>
-          <span>Điểm qua: {quiz.passingScore}%</span>
-          <span className="font-semibold">+{quiz.xpReward} XP</span>
-        </div>
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <h3 className="font-bold text-blue-900 flex items-center gap-2 mb-2">
+          <AlertCircle size={18} />
+          Yêu cầu hoàn thành bài học
+        </h3>
+        <p className="text-sm text-blue-800">Bạn chỉ cần vượt qua ít nhất một bài kiểm tra trong bài học này để đáp ứng yêu cầu kiểm tra cho việc hoàn thành bài học.</p>
       </div>
 
-      {quiz.questions.map((q, idx) => (
-        <div key={q.id} className="border border-gray-200 rounded p-4">
-          <div className="flex gap-3 mb-3">
-            <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-              {idx + 1}
-            </span>
-            <p className="font-medium text-gray-900">{q.content}</p>
-          </div>
-          <div className="ml-9 space-y-2">
-            {q.options.map((opt) => (
-              <button
-                key={opt.id}
-                className="w-full text-left p-2 border border-gray-300 rounded hover:bg-blue-50 transition text-sm"
-              >
-                {opt.optionText}
-              </button>
-            ))}
+      <div>
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Bài kiểm tra</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition">
+            <div className="flex items-start justify-between mb-3">
+              <h4 className="font-bold text-gray-900 flex-1">{quiz.title}</h4>
+              <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">Luyện Tập</span>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">Bài kiểm tra này kiểm tra kiến thức cơ bản về bài học này.</p>
+
+            <div className="space-y-2 mb-4 text-xs">
+              <div className="flex items-center gap-2 text-gray-600">
+                <AlertCircle size={14} />
+                <span>{quiz.totalQuestions} câu hỏi</span>
+              </div>
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircle size={14} />
+                <span>Điểm đạt: {quiz.passingScore}%</span>
+              </div>
+              <div className="flex items-center gap-2 text-yellow-600">
+                <Zap size={14} />
+                <span>{quiz.xpReward} XP</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setStarted(true)}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 rounded-lg transition"
+            >
+              Bắt đầu
+            </button>
           </div>
         </div>
-      ))}
-
-      <button className="w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600 transition font-medium">
-        Bắt đầu bài kiểm tra
-      </button>
+      </div>
     </div>
   )
 }
 
-function ChallengesTab({ challenges }: { challenges: CodeChallenge[] }) {
+function ChallengesTab({ challenges, lessonId }: { challenges: CodeChallenge[]; lessonId: number }) {
+  const [selectedChallenge, setSelectedChallenge] = useState<CodeChallenge | null>(
+    challenges.length > 0 ? challenges[0] : null
+  )
+
   if (!challenges || challenges.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         <Code className="w-12 h-12 mx-auto mb-2 opacity-30" />
-        Bài học này chưa có thử thách lập trình
+        Bài học này chưa có thử thách code
+      </div>
+    )
+  }
+
+  if (selectedChallenge) {
+    return (
+      <div>
+        <button
+          onClick={() => setSelectedChallenge(null)}
+          className="flex items-center gap-2 px-4 py-2 mb-4 text-orange-600 hover:text-orange-700 font-semibold"
+        >
+          <ChevronDown className="w-5 h-5 rotate-90" />
+          Quay lại danh sách
+        </button>
+        <CodeChallengeTest challenge={selectedChallenge} lessonId={lessonId} />
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      {challenges.map((challenge, idx) => (
-        <div key={challenge.id} className="border border-gray-200 rounded p-4">
-          <div className="flex items-start gap-3 mb-3">
-            <span className="flex-shrink-0 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-              {idx + 1}
-            </span>
-            <div>
-              <h4 className="font-bold text-gray-900">{challenge.title}</h4>
-              <p className="text-sm text-gray-600 mt-1">{challenge.description}</p>
-            </div>
-          </div>
+    <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <h3 className="font-bold text-blue-900 flex items-center gap-2 mb-2">
+          <AlertCircle size={18} />
+          Yêu cầu hoàn thành bài học
+        </h3>
+        <p className="text-sm text-blue-800">Bạn chỉ cần hoàn thành ít nhất một bài thực hành code (đạt trạng thái "Accepted") trong bài học này để đáp ứng yêu cầu thực hành code cho việc hoàn thành bài học.</p>
+      </div>
 
-          <div className="grid grid-cols-3 gap-3 ml-9 mb-3">
-            <div className="bg-gray-50 p-2 rounded text-center">
-              <div className="text-xs text-gray-600">Độ khó</div>
-              <div className="font-semibold text-xs">
-                {challenge.difficulty === 'EASY' && <span className="text-green-600">Dễ</span>}
-                {challenge.difficulty === 'MEDIUM' && <span className="text-yellow-600">Trung bình</span>}
-                {challenge.difficulty === 'HARD' && <span className="text-red-600">Khó</span>}
+      <div>
+        <h3 className="text-lg font-bold text-gray-900 mb-4">Thử thách lập trình</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {challenges.map((challenge) => (
+            <div key={challenge.id} className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition">
+              <div className="flex items-start justify-between mb-3">
+                <h4 className="font-bold text-gray-900 flex-1">{challenge.title}</h4>
+                <span className={`px-3 py-1 text-xs font-semibold rounded ${
+                  challenge.difficulty === 'EASY' ? 'bg-green-100 text-green-700' :
+                  challenge.difficulty === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                  {challenge.difficulty === 'EASY' ? 'Dễ' : challenge.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó'}
+                </span>
               </div>
-            </div>
-            <div className="bg-gray-50 p-2 rounded text-center">
-              <div className="text-xs text-gray-600">Test cases</div>
-              <div className="font-semibold text-xs">{challenge.totalTestCases}</div>
-            </div>
-            <div className="bg-gray-50 p-2 rounded text-center">
-              <div className="text-xs text-gray-600">XP</div>
-              <div className="font-semibold text-xs text-yellow-600">{challenge.xpReward}</div>
-            </div>
-          </div>
 
-          <button className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition font-medium text-sm">
-            Bắt đầu thử thách
+              <p className="text-sm text-gray-600 mb-4 line-clamp-2">{challenge.description}</p>
+
+              <div className="space-y-2 mb-4 text-xs">
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Clock size={14} />
+                  <span>1 ngôn ngữ</span>
+                </div>
+                <div className="flex items-center gap-2 text-yellow-600">
+                  <Zap size={14} />
+                  <span>{challenge.xpReward} XP</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs mb-4">
+                <div className="text-center">
+                  <p className="text-gray-600">Đã giải</p>
+                  <p className="font-bold text-gray-900">0</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-600">Tỷ lệ thành công</p>
+                  <p className="font-bold text-gray-900">0%</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedChallenge(challenge)}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 rounded-lg transition flex items-center justify-center gap-2"
+              >
+                <Code size={16} />
+                Giải quyết
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CommentsTab({ lessonId, comments }: { lessonId: number, comments: any[] }) {
+  const [newComment, setNewComment] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return
+
+    setIsSubmitting(true)
+    try {
+      await axiosClient.post(`/lessons/${lessonId}/comments`, {
+        content: newComment.trim(),
+        parentId: null,
+      })
+      setNewComment('')
+      // Re-fetch comments would be done by React Query here
+    } catch (err) {
+      console.error('Error adding comment:', err)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* New Comment Form */}
+      <div className="border border-gray-200 rounded-lg p-4">
+        <h3 className="font-bold text-gray-900 mb-3">Thảo luận & Câu hỏi</h3>
+        <div className="space-y-3">
+          <textarea
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Đặt câu hỏi hoặc chia sẻ ý kiến của bạn..."
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+            rows={4}
+          />
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-gray-500">{newComment.length}/2000</span>
+            <button
+              onClick={handleAddComment}
+              disabled={!newComment.trim() || isSubmitting}
+              className="px-4 py-2 bg-orange-500 text-white font-medium rounded hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Đang gửi...' : 'Gửi câu hỏi'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Comments List */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-gray-900">
+            {comments.length} bình luận
+          </h3>
+          <button className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
+            Làm mới
           </button>
         </div>
-      ))}
+
+        {comments.length > 0 ? (
+          <div className="space-y-4">
+            {comments.map((comment: any) => (
+              <div key={comment.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="font-semibold text-gray-900">{comment.user?.fullName}</p>
+                    <p className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleDateString('vi-VN')}</p>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-gray-600">
+                    👍 {comment.upvotes || 0}
+                  </div>
+                </div>
+                <p className="text-gray-700 text-sm mb-3">{comment.content}</p>
+                <button className="text-xs text-orange-500 hover:text-orange-600 font-medium">
+                  Trả lời
+                </button>
+
+                {/* Replies */}
+                {comment.replies && comment.replies.length > 0 && (
+                  <div className="mt-3 ml-4 pt-3 border-l-2 border-gray-200 space-y-3">
+                    {comment.replies.map((reply: any) => (
+                      <div key={reply.id}>
+                        <div>
+                          <p className="font-semibold text-sm text-gray-900">{reply.user?.fullName}</p>
+                          <p className="text-xs text-gray-500">{new Date(reply.createdAt).toLocaleDateString('vi-VN')}</p>
+                        </div>
+                        <p className="text-gray-700 text-sm mt-1">{reply.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-30" />
+            Chưa có bình luận nào. Hãy là người đầu tiên!
+          </div>
+        )}
+      </div>
     </div>
   )
 }
