@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Clock,
   Zap,
@@ -402,7 +402,7 @@ export function LessonDetail() {
             <div className="flex gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-yellow-900 mb-1">Trang thái hoàn thành</h3>
+                <h3 className="font-semibold text-yellow-900 mb-1">Trạng thái hoàn thành</h3>
                 <p className="text-sm text-yellow-800">Vượt qua ít nhất 1 bài kiểm tra</p>
               </div>
             </div>
@@ -563,6 +563,13 @@ function MaterialsTab({
 
 function QuizTab({ quiz, lessonId }: { quiz: QuizInfo | null; lessonId: number }) {
   const [started, setStarted] = useState(false)
+  const queryClient = useQueryClient()
+
+  const handleQuizPass = () => {
+    // Invalidate lesson query để refetch data mới
+    queryClient.invalidateQueries({ queryKey: ['lesson', lessonId] })
+    setStarted(false)
+  }
 
   if (!quiz) {
     return (
@@ -574,7 +581,7 @@ function QuizTab({ quiz, lessonId }: { quiz: QuizInfo | null; lessonId: number }
   }
 
   if (started) {
-    return <QuizTest quiz={quiz} lessonId={lessonId} />
+    return <QuizTest quiz={quiz} lessonId={lessonId} onQuizPass={handleQuizPass} />
   }
 
   return (
@@ -593,7 +600,7 @@ function QuizTab({ quiz, lessonId }: { quiz: QuizInfo | null; lessonId: number }
           <div className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition">
             <div className="flex items-start justify-between mb-3">
               <h4 className="font-bold text-gray-900 flex-1">{quiz.title}</h4>
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">Luyện Tập</span>
+              <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">Kiểm Tra</span>
             </div>
             <p className="text-sm text-gray-600 mb-4">Bài kiểm tra này kiểm tra kiến thức cơ bản về bài học này.</p>
 

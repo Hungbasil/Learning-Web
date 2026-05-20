@@ -34,9 +34,10 @@ interface QuizInfo {
 interface QuizTestProps {
   quiz: QuizInfo
   lessonId: number
+  onQuizPass?: () => void
 }
 
-export function QuizTest({ quiz, lessonId }: QuizTestProps) {
+export function QuizTest({ quiz, lessonId, onQuizPass }: QuizTestProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<{ [key: number]: number | null }>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -88,6 +89,13 @@ export function QuizTest({ quiz, lessonId }: QuizTestProps) {
 
       setResult(response.data)
       setSubmitted(true)
+      
+      // Gọi callback nếu quiz pass
+      if (response.data.isPassed && onQuizPass) {
+        setTimeout(() => {
+          onQuizPass()
+        }, 2000) // Delay 2 giây để người dùng thấy kết quả
+      }
     } catch (err) {
       console.error('Error submitting quiz:', err)
       alert('Lỗi khi nộp bài kiểm tra')
@@ -153,7 +161,15 @@ export function QuizTest({ quiz, lessonId }: QuizTestProps) {
             <RotateCcw className="w-5 h-5" />
             Làm lại
           </button>
-          <button className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold rounded-lg transition">
+          <button 
+            onClick={result.isPassed ? onQuizPass : undefined}
+            disabled={!result.isPassed}
+            className={`px-6 py-3 font-semibold rounded-lg transition ${
+              result.isPassed 
+                ? 'bg-gray-200 hover:bg-gray-300 text-gray-900 cursor-pointer' 
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed opacity-50'
+            }`}
+          >
             Tiếp tục
           </button>
         </div>
