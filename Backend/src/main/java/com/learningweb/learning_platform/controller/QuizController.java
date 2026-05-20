@@ -3,6 +3,7 @@ package com.learningweb.learning_platform.controller;
 
 
 import com.learningweb.learning_platform.dto.QuizSubmissionRequest;
+import com.learningweb.learning_platform.dto.QuizResultResponse;
 import com.learningweb.learning_platform.entity.*;
 import com.learningweb.learning_platform.repository.*;
 import org.hibernate.Hibernate;
@@ -13,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/quizzes")
@@ -24,6 +24,7 @@ public class QuizController {
     @Autowired private QuizOptionRepository optionRepository;
     @Autowired private QuizAttemptRepository attemptRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private LessonProgressRepository lessonProgressRepository;
 
     @PostMapping("/{quizId}/submit")
     @Transactional
@@ -31,6 +32,21 @@ public class QuizController {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Quiz quiz = quizRepository.findByIdWithQuestions(quizId).orElse(null);
         if (quiz == null) return ResponseEntity.badRequest().body("Không tìm thấy bài Quiz");
+
+        // ✅ VẤN ĐỀ 2 FIX: Kiểm tra user đã pass quiz này trước đó chưa
+        boolean hasAlreadyPassed = attemptRepository.hasUserPassedQuiz(user.getId(), quizId);
+        if (hasAlreadyPassed) {
+            // Lấy attempt pass cũ để return thông tin (format giống như lần đầu pass)
+            QuizAttempt previousAttempt = attemptRepository.findPassedAttemptByUserAndQuiz(user, quiz).orElse(null);
+            System.out.println("⚠️ User " + user.getEmail() + " đã pass quiz này rồi. Không cộng thêm XP.");
+            // Return với flag alreadyPassed = true
+            return ResponseEntity.ok(QuizResultResponse.builder()
+                    .score(previousAttempt != null ? previousAttempt.getScore() : 0)
+                    .isPassed(true)
+                    .earnedXp(0) // Không cộng thêm XP
+                    .alreadyPassed(true)
+                    .build());
+        }
 
         List<QuizQuestion> questions = quiz.getQuestions();
         int totalQuestions = questions.size();
@@ -75,8 +91,24 @@ public class QuizController {
             user.setTotalXp((user.getTotalXp() == null ? 0 : user.getTotalXp()) + totalEarnedXp);
             userRepository.save(user);
             System.out.println("✨ Đã cộng " + totalEarnedXp + " XP cho học viên: " + user.getEmail());
+            
+            // ✅ VẤN ĐỀ 1 FIX: Update LessonProgress.completed = true
+            Lesson lesson = quiz.getLesson();
+            if (lesson != null) {
+                LessonProgress progress = lessonProgressRepository.findByUserAndLesson(user, lesson)
+                        .orElse(LessonProgress.builder().user(user).lesson(lesson).build());
+                progress.setCompleted(true);
+                lessonProgressRepository.save(progress);
+                System.out.println("✅ Đã đánh dấu bài học " + lesson.getId() + " là hoàn thành cho " + user.getEmail());
+            }
         }
 
-        return ResponseEntity.ok(attempt);
+        // Return response format thống nhất
+        return ResponseEntity.ok(QuizResultResponse.builder()
+                .score(finalScore)
+                .isPassed(isPassed)
+                .earnedXp(totalEarnedXp)
+                .alreadyPassed(false) // Lần đầu pass
+                .build());
     }
 }

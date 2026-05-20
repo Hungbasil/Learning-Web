@@ -119,11 +119,18 @@ public class CodeEvaluationService {
                 .build();
         submissionRepository.save(submission);
 
+        // ✅ VẤN ĐỀ 2 FIX: Kiểm tra user đã có ACCEPTED submission cho challenge này trước đó chưa
         if (allPassed) {
-            int xpReward = (challenge.getXpReward() != null) ? challenge.getXpReward() : 75;
-            user.setTotalXp((user.getTotalXp() == null ? 0 : user.getTotalXp()) + xpReward);
-            userRepository.save(user);
-            System.out.println("🚀 [Thực chiến] Code " + language + " chạy chuẩn 100%! Đã cộng " + xpReward + " XP.");
+            boolean hasAlreadyAccepted = submissionRepository.hasUserAcceptedChallenge(user.getId(), challenge.getId());
+            
+            if (hasAlreadyAccepted) {
+                System.out.println("⚠️ User " + user.getEmail() + " đã ACCEPTED challenge này rồi. Không cộng thêm XP.");
+            } else {
+                int xpReward = (challenge.getXpReward() != null) ? challenge.getXpReward() : 75;
+                user.setTotalXp((user.getTotalXp() == null ? 0 : user.getTotalXp()) + xpReward);
+                userRepository.save(user);
+                System.out.println("🚀 [Thực chiến] Code " + language + " chạy chuẩn 100%! Đã cộng " + xpReward + " XP.");
+            }
         } else {
             System.out.println("⚠️ Code " + language + " sai: " + executionError);
         }
