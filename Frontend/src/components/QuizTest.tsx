@@ -46,6 +46,7 @@ export function QuizTest({ quiz, lessonId, onQuizPass }: QuizTestProps) {
     score: number
     isPassed: boolean
     earnedXp: number
+    alreadyPassed?: boolean
   } | null>(null)
 
   const currentQuestion = quiz.questions[currentQuestionIndex]
@@ -87,11 +88,16 @@ export function QuizTest({ quiz, lessonId, onQuizPass }: QuizTestProps) {
         answers: formattedAnswers,
       })
 
-      setResult(response.data)
+      setResult({
+        score: response.data.score,
+        isPassed: response.data.isPassed,
+        earnedXp: response.data.earnedXp,
+        alreadyPassed: response.data.alreadyPassed || false, // Detect nếu đã pass rồi
+      })
       setSubmitted(true)
       
-      // Gọi callback nếu quiz pass
-      if (response.data.isPassed && onQuizPass) {
+      // Gọi callback nếu quiz pass lần đầu (không phải retry)
+      if (response.data.isPassed && !response.data.alreadyPassed && onQuizPass) {
         setTimeout(() => {
           onQuizPass()
         }, 2000) // Delay 2 giây để người dùng thấy kết quả
@@ -122,8 +128,14 @@ export function QuizTest({ quiz, lessonId, onQuizPass }: QuizTestProps) {
           {result.isPassed ? (
             <div>
               <CheckCircle className="w-16 h-16 mx-auto text-green-600 mb-4" />
-              <h2 className="text-2xl font-bold text-green-900 mb-2">Chúc mừng! 🎉</h2>
-              <p className="text-green-800 mb-4">Bạn đã vượt qua bài kiểm tra</p>
+              <h2 className="text-2xl font-bold text-green-900 mb-2">
+                {result.alreadyPassed ? 'Bạn đã hoàn thành! ✅' : 'Chúc mừng! 🎉'}
+              </h2>
+              <p className="text-green-800 mb-4">
+                {result.alreadyPassed 
+                  ? 'Bạn đã vượt qua bài kiểm tra này rồi. Không cộng thêm XP.'
+                  : 'Bạn đã vượt qua bài kiểm tra'}
+              </p>
             </div>
           ) : (
             <div>
@@ -147,7 +159,9 @@ export function QuizTest({ quiz, lessonId, onQuizPass }: QuizTestProps) {
               <p className="text-gray-600 text-sm mb-1 flex items-center justify-center gap-1">
                 <Zap className="w-4 h-4" /> XP
               </p>
-              <p className="text-3xl font-bold text-yellow-600">{result.earnedXp}</p>
+              <p className={`text-3xl font-bold ${result.alreadyPassed ? 'text-gray-400' : 'text-yellow-600'}`}>
+                {result.earnedXp}
+              </p>
             </div>
           </div>
         </div>

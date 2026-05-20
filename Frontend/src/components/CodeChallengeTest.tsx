@@ -9,6 +9,8 @@ import {
   ChevronDown,
   Copy,
   RefreshCw,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react'
 import { axiosClient } from '@/config/axiosClient'
 
@@ -39,6 +41,7 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
   const [code, setCode] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const [result, setResult] = useState<{
     type: 'EVALUATION' | 'AI_ANALYSIS'
     status?: 'ACCEPTED' | 'WRONG_ANSWER'
@@ -128,15 +131,242 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
     navigator.clipboard.writeText(input)
   }
 
+  // Fullscreen mode
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 bg-white overflow-auto flex flex-col">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-300 p-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">{challenge.title}</h2>
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="p-2 hover:bg-gray-100 rounded transition"
+          >
+            <Minimize2 className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-6 p-6">
+          {/* LEFT - Description */}
+          <div className="md:col-span-1 space-y-4 overflow-y-auto max-h-96">
+            {/* Description */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="font-bold text-gray-900 mb-3">Mô tả bài toán</h3>
+              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                {challenge.description}
+              </p>
+            </div>
+
+            {/* Header Info */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-3">
+                <span className={`px-3 py-1 text-xs font-semibold rounded ${
+                  challenge.difficulty === 'EASY' ? 'bg-green-100 text-green-700' :
+                  challenge.difficulty === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                  {challenge.difficulty === 'EASY' ? 'DỄ' :
+                   challenge.difficulty === 'MEDIUM' ? 'TRUNG BÌNH' : 'KHÓ'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-gray-600 text-xs mb-1">Độ khó</p>
+                  <p className="font-bold text-gray-900">
+                    {challenge.difficulty === 'EASY' ? 'Dễ' :
+                     challenge.difficulty === 'MEDIUM' ? 'Trung bình' : 'Khó'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-600 text-xs mb-1 flex items-center gap-1">
+                    <Zap className="w-3 h-3" /> Thưởng
+                  </p>
+                  <p className="font-bold text-yellow-600">{challenge.xpReward} XP</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CENTER - Code Editor */}
+          <div className="md:col-span-1 flex flex-col bg-white rounded-lg border border-gray-200 overflow-hidden">
+            {/* Language & Actions */}
+            <div className="p-4 border-b border-gray-200 space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-700 block mb-2">Ngôn ngữ:</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm font-medium bg-white"
+                >
+                  {languages.map((lang) => (
+                    <option key={lang.value} value={lang.value}>
+                      {lang.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={handleReset}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 text-xs font-semibold rounded transition"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Reset
+                </button>
+                <button
+                  onClick={handleAiAnalysis}
+                  disabled={isAnalyzing || aiTokens <= 0}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:opacity-50 text-white text-xs font-semibold rounded transition"
+                >
+                  <Lightbulb className="w-3 h-3" />
+                  AI
+                </button>
+              </div>
+            </div>
+
+            {/* Code Editor */}
+            <textarea
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="// Nhập code của bạn tại đây..."
+              className="flex-1 font-mono text-sm p-4 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+              spellCheck={false}
+            />
+            
+            <div className="p-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={handleSubmitCode}
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold rounded transition"
+              >
+                <Play className="w-4 h-4" />
+                {isSubmitting ? 'Đang chạy...' : 'Nộp bài'}
+              </button>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                {code.length} ký tự
+              </p>
+            </div>
+          </div>
+
+          {/* RIGHT - Test Cases & Result */}
+          <div className="md:col-span-1 space-y-4 overflow-y-auto max-h-96">
+            {/* Test Cases */}
+            <div className="bg-white rounded-lg p-6 border border-gray-200">
+              <h3 className="font-bold text-gray-900 mb-3 text-sm">
+                Test Cases ({visibleTestCases.length} / {challenge.totalTestCases})
+              </h3>
+              <p className="text-xs text-gray-600 bg-blue-50 border border-blue-200 rounded p-2 mb-3">
+                {visibleTestCases.length} mẫu • {challenge.totalTestCases - visibleTestCases.length} ẩn
+              </p>
+
+              <div className="space-y-2">
+                {visibleTestCases.map((testCase, idx) => (
+                  <div
+                    key={testCase.id}
+                    className="border border-gray-200 rounded-lg overflow-hidden"
+                  >
+                    <button
+                      onClick={() => setExpandedTestCase(expandedTestCase === idx ? null : idx)}
+                      className="w-full flex items-center justify-between p-3 hover:bg-gray-50 transition text-left"
+                    >
+                      <span className="font-semibold text-gray-900 text-sm">Test {idx + 1}</span>
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform ${
+                          expandedTestCase === idx ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+
+                    {expandedTestCase === idx && (
+                      <div className="bg-gray-50 border-t border-gray-200 p-3 space-y-2">
+                        <div>
+                          <p className="text-xs font-bold text-gray-700 mb-1">Input:</p>
+                          <div className="bg-gray-900 text-gray-100 p-2 rounded font-mono text-xs overflow-x-auto relative group max-h-24">
+                            <pre className="whitespace-pre-wrap break-words">{testCase.inputData}</pre>
+                            <button
+                              onClick={() => handleCopyExample(testCase.inputData)}
+                              className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition p-1 bg-gray-700 hover:bg-gray-600 rounded"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-bold text-gray-700 mb-1">Output:</p>
+                          <div className="bg-gray-900 text-gray-100 p-2 rounded font-mono text-xs overflow-x-auto max-h-24">
+                            <pre className="whitespace-pre-wrap break-words">{testCase.expectedOutput}</pre>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Result */}
+            {result && (
+              <div className={`rounded-lg p-4 ${
+                result.type === 'EVALUATION'
+                  ? result.status === 'ACCEPTED'
+                    ? 'bg-green-50 border-2 border-green-300'
+                    : 'bg-red-50 border-2 border-red-300'
+                  : 'bg-blue-50 border-2 border-blue-300'
+              }`}>
+                {result.type === 'EVALUATION' ? (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      {result.status === 'ACCEPTED' ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                      )}
+                      <h3 className={`font-bold text-sm ${
+                        result.status === 'ACCEPTED' ? 'text-green-900' : 'text-red-900'
+                      }`}>
+                        {result.status === 'ACCEPTED' ? 'Chính xác! ✅' : 'Sai rồi ❌'}
+                      </h3>
+                    </div>
+                    {result.status === 'ACCEPTED' && (
+                      <div className="flex items-center gap-1 text-yellow-600 font-semibold text-sm">
+                        <Zap className="w-4 h-4" />
+                        {result.xpEarned} XP
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <h3 className="font-bold text-sm text-blue-900 mb-2 flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4" />
+                      Gợi ý
+                    </h3>
+                    <div className="text-blue-800 text-xs whitespace-pre-wrap">
+                      {result.feedback}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Normal mode (side-by-side)
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* LEFT SIDE - Description & Details */}
-      <div className="space-y-4">
+      <div className="lg:col-span-1 space-y-4">
         {/* Header */}
         <div className="bg-white rounded-lg p-6 border border-gray-200">
           <div className="flex items-start justify-between mb-3">
             <h2 className="text-2xl font-bold text-gray-900">{challenge.title}</h2>
-            <span className={`px-3 py-1 text-xs font-semibold rounded ${
+            <span className={`px-3 py-1 text-xs font-semibold rounded whitespace-nowrap ${
               challenge.difficulty === 'EASY' ? 'bg-green-100 text-green-700' :
               challenge.difficulty === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' :
               'bg-red-100 text-red-700'
@@ -149,9 +379,9 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
           {/* Info Box */}
           <div className="bg-purple-50 border border-purple-200 rounded p-4 mb-4">
             <p className="text-sm text-purple-900">
-              <span className="font-semibold">💡 Đang bị tương?</span>
+              <span className="font-semibold">💡 Cần gợi ý?</span>
               <br />
-              Nhân nút "Phân tích AI" để nhận gợi ý thích chi tiết cách giải bài. Tính năng copy là tắt đặc bản để bạn tự học tốt hơn!
+              Bấm "Phân tích AI" để nhận hướng dẫn chi tiết cách giải bài!
             </p>
           </div>
 
@@ -213,8 +443,8 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
                     {/* Input */}
                     <div>
                       <p className="text-xs font-bold text-gray-700 mb-2">Input:</p>
-                      <div className="bg-gray-900 text-gray-100 p-3 rounded font-mono text-xs overflow-x-auto relative group">
-                        <pre>{testCase.inputData}</pre>
+                      <div className="bg-gray-900 text-gray-100 p-3 rounded font-mono text-xs overflow-x-auto relative group max-h-32">
+                        <pre className="whitespace-pre-wrap break-words">{testCase.inputData}</pre>
                         <button
                           onClick={() => handleCopyExample(testCase.inputData)}
                           className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition p-1.5 bg-gray-700 hover:bg-gray-600 rounded"
@@ -228,8 +458,8 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
                     {/* Expected Output */}
                     <div>
                       <p className="text-xs font-bold text-gray-700 mb-2">Expected Output:</p>
-                      <div className="bg-gray-900 text-gray-100 p-3 rounded font-mono text-xs overflow-x-auto">
-                        <pre>{testCase.expectedOutput}</pre>
+                      <div className="bg-gray-900 text-gray-100 p-3 rounded font-mono text-xs overflow-x-auto max-h-32">
+                        <pre className="whitespace-pre-wrap break-words">{testCase.expectedOutput}</pre>
                       </div>
                     </div>
                   </div>
@@ -241,9 +471,9 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
       </div>
 
       {/* RIGHT SIDE - Code Editor & Results */}
-      <div className="space-y-4 flex flex-col">
+      <div className="lg:col-span-2 space-y-4 flex flex-col">
         {/* Language & Actions */}
-        <div className="bg-white rounded-lg p-4 border border-gray-200 flex items-center justify-between gap-3 flex-wrap">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <label className="text-xs font-semibold text-gray-700 block mb-2">
               Ngôn ngữ:
@@ -251,7 +481,7 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded text-sm font-medium bg-white"
+              className="px-4 py-2 border border-gray-300 rounded text-sm font-medium bg-white"
             >
               {languages.map((lang) => (
                 <option key={lang.value} value={lang.value}>
@@ -263,12 +493,20 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
 
           <div className="flex gap-2 flex-wrap">
             <button
+              onClick={() => setIsFullscreen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold rounded transition"
+              title="Xem toàn màn hình"
+            >
+              <Maximize2 className="w-4 h-4" />
+              Toàn màn hình
+            </button>
+            <button
               onClick={handleReset}
               className="flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 text-sm font-semibold rounded transition"
               title="Xóa code"
             >
               <RefreshCw className="w-4 h-4" />
-              Chạy lại
+              Reset
             </button>
             <button
               onClick={handleAiAnalysis}
@@ -282,7 +520,7 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
             <button
               onClick={handleSubmitCode}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded transition"
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded transition font-bold"
             >
               <Play className="w-4 h-4" />
               {isSubmitting ? 'Đang chạy...' : 'Nộp bài'}
@@ -291,12 +529,12 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
         </div>
 
         {/* Code Editor */}
-        <div className="flex-1 bg-white rounded-lg p-4 border border-gray-200 overflow-hidden flex flex-col">
+        <div className="flex-1 bg-white rounded-lg p-6 border border-gray-200 overflow-hidden flex flex-col min-h-96">
           <textarea
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="// Nhập code của bạn tại đây..."
-            className="flex-1 font-mono text-sm p-4 border border-gray-300 rounded bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+            className="flex-1 font-mono text-base p-4 border border-gray-300 rounded bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
             spellCheck={false}
           />
           <p className="text-xs text-gray-500 mt-2 text-right">
@@ -324,7 +562,7 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
                   <h3 className={`font-bold text-lg ${
                     result.status === 'ACCEPTED' ? 'text-green-900' : 'text-red-900'
                   }`}>
-                    {result.status === 'ACCEPTED' ? 'Chính xác! ✅' : 'Sai rồi ❌'}
+                    {result.status === 'ACCEPTED' ? 'Chính xác!' : 'Sai'}
                   </h3>
                 </div>
                 {result.status === 'ACCEPTED' && (

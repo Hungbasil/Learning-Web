@@ -414,7 +414,7 @@ export function LessonDetail() {
               <div className="flex gap-3">
                 <Code className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="font-semibold text-blue-900 mb-1">Bài tập hành code</h3>
+                  <h3 className="font-semibold text-blue-900 mb-1">Bài tập code</h3>
                   <p className="text-sm text-blue-800">
                     ({lesson.challenges.length} bài - {' '}
                     <span className="font-semibold">
@@ -491,7 +491,7 @@ export function LessonDetail() {
               {activeTab === 'materials' && (
                 <MaterialsTab materials={lesson.materials} lessonContent={lesson.content} />
               )}
-              {activeTab === 'quiz' && <QuizTab quiz={lesson.quiz} lessonId={parseInt(lessonId || '0')} />}
+              {activeTab === 'quiz' && <QuizTab quiz={lesson.quiz} lessonId={lessonId || '0'} />}
               {activeTab === 'challenges' && <ChallengesTab challenges={lesson.challenges} lessonId={parseInt(lessonId || '0')} />}
               {activeTab === 'comments' && <CommentsTab lessonId={parseInt(lessonId || '0')} comments={comments} />}
             </div>
@@ -561,13 +561,13 @@ function MaterialsTab({
   )
 }
 
-function QuizTab({ quiz, lessonId }: { quiz: QuizInfo | null; lessonId: number }) {
+function QuizTab({ quiz, lessonId: lessonIdStr }: { quiz: QuizInfo | null; lessonId: string }) {
   const [started, setStarted] = useState(false)
   const queryClient = useQueryClient()
 
   const handleQuizPass = () => {
-    // Invalidate lesson query để refetch data mới
-    queryClient.invalidateQueries({ queryKey: ['lesson', lessonId] })
+    // Invalidate lesson query với string lessonId để match với query key
+    queryClient.invalidateQueries({ queryKey: ['lesson', lessonIdStr] })
     setStarted(false)
   }
 
@@ -581,7 +581,7 @@ function QuizTab({ quiz, lessonId }: { quiz: QuizInfo | null; lessonId: number }
   }
 
   if (started) {
-    return <QuizTest quiz={quiz} lessonId={lessonId} onQuizPass={handleQuizPass} />
+    return <QuizTest quiz={quiz} lessonId={parseInt(lessonIdStr)} onQuizPass={handleQuizPass} />
   }
 
   return (
@@ -631,7 +631,6 @@ function QuizTab({ quiz, lessonId }: { quiz: QuizInfo | null; lessonId: number }
     </div>
   )
 }
-
 function ChallengesTab({ challenges, lessonId }: { challenges: CodeChallenge[]; lessonId: number }) {
   const [selectedChallenge, setSelectedChallenge] = useState<CodeChallenge | null>(
     challenges.length > 0 ? challenges[0] : null
