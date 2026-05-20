@@ -92,6 +92,7 @@ interface LessonDetailResponse {
   orderIndex: number
   materials: LessonMaterial[]
   quiz: QuizInfo | null
+  quizPassed?: boolean  // true nếu user đã pass quiz
   challenges: CodeChallenge[]
   section?: Section
 }
@@ -398,12 +399,34 @@ export function LessonDetail() {
           </div>
 
           {/* Status Box */}
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded p-4 mb-6">
+          <div className={`border-l-4 rounded p-4 mb-6 ${
+            lesson.quizPassed 
+              ? 'bg-green-50 border-green-400' 
+              : 'bg-yellow-50 border-yellow-400'
+          }`}>
             <div className="flex gap-3">
-              <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                lesson.quizPassed 
+                  ? 'text-green-600' 
+                  : 'text-yellow-600'
+              }`} />
               <div>
-                <h3 className="font-semibold text-yellow-900 mb-1">Trạng thái hoàn thành</h3>
-                <p className="text-sm text-yellow-800">Vượt qua ít nhất 1 bài kiểm tra</p>
+                <h3 className={`font-semibold mb-1 ${
+                  lesson.quizPassed 
+                    ? 'text-green-900' 
+                    : 'text-yellow-900'
+                }`}>
+                  Trạng thái hoàn thành
+                </h3>
+                <p className={`text-sm ${
+                  lesson.quizPassed 
+                    ? 'text-green-800' 
+                    : 'text-yellow-800'
+                }`}>
+                  {lesson.quizPassed 
+                    ? '✅ Bạn đã vượt qua bài kiểm tra' 
+                    : 'Vượt qua ít nhất 1 bài kiểm tra'}
+                </p>
               </div>
             </div>
           </div>
@@ -428,7 +451,7 @@ export function LessonDetail() {
           )}
 
           {/* Quiz Not Passed Warning */}
-          {lesson.quiz && (
+          {lesson.quiz && !lesson.quizPassed && (
             <div className="bg-orange-50 border border-orange-200 rounded p-4 mb-6">
               <p className="text-sm text-orange-800 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
