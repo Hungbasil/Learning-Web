@@ -18,6 +18,8 @@ public class LessonController {
     @Autowired private LessonMaterialRepository materialRepository;
     @Autowired private QuizRepository quizRepository;
     @Autowired private CodeChallengeRepository challengeRepository;
+    @Autowired private QuizAttemptRepository quizAttemptRepository;
+    @Autowired private UserRepository userRepository;
 
     /**
      * GET /api/lessons/{id} - Lấy chi tiết lesson với tất cả thông tin
@@ -27,6 +29,14 @@ public class LessonController {
         Lesson lesson = lessonRepository.findById(id).orElse(null);
         if (lesson == null) {
             return ResponseEntity.badRequest().body("Không tìm thấy bài học!");
+        }
+        
+        // Get current user
+        User user = null;
+        try {
+            user = (User) org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        } catch (Exception e) {
+            // User not authenticated
         }
 
         // Lấy materials
@@ -92,6 +102,12 @@ public class LessonController {
                         .build())
                 .collect(Collectors.toList());
 
+        // Check if user has passed quiz
+        Boolean quizPassed = false;
+        if (user != null && lesson.getQuiz() != null) {
+            quizPassed = quizAttemptRepository.hasUserPassedQuiz(user.getId(), lesson.getQuiz().getId());
+        }
+        
         // Build response
         LessonDetailResponse response = LessonDetailResponse.builder()
                 .id(lesson.getId())
@@ -103,6 +119,7 @@ public class LessonController {
                 .orderIndex(lesson.getOrderIndex())
                 .materials(materialResponses)
                 .quiz(quizResponse)
+                .quizPassed(quizPassed)
                 .challenges(challengeResponses)
                 .build();
 

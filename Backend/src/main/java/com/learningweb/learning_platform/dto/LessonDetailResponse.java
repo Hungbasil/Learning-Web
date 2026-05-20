@@ -21,6 +21,7 @@ public class LessonDetailResponse {
     
     // Bài kiểm tra
     private QuizInfoResponse quiz;
+    private Boolean quizPassed; // true nếu user đã pass quiz
     
     // Thử thách lập trình
     private List<CodeChallengeResponse> challenges;
