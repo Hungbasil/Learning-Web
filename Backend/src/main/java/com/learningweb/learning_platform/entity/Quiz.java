@@ -1,6 +1,6 @@
 package com.learningweb.learning_platform.entity;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
@@ -20,6 +20,7 @@ public class Quiz {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lesson_id")
+    @JsonIgnore
     private Lesson lesson;
 
     @OneToMany(mappedBy = "quiz", cascade = CascadeType.ALL)
