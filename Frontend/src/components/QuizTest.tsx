@@ -96,8 +96,8 @@ export function QuizTest({ quiz, lessonId, onQuizPass }: QuizTestProps) {
       })
       setSubmitted(true)
       
-      // Gọi callback nếu quiz pass lần đầu (không phải retry)
-      if (response.data.isPassed && !response.data.alreadyPassed && onQuizPass) {
+      // ✅ FIX: Gọi callback nếu quiz pass (dù lần 1 hay lần 2+) để sidebar luôn update
+      if (response.data.isPassed && onQuizPass) {
         setTimeout(() => {
           onQuizPass()
         }, 2000) // Delay 2 giây để người dùng thấy kết quả

@@ -515,7 +515,7 @@ export function LessonDetail() {
                 <MaterialsTab materials={lesson.materials} lessonContent={lesson.content} />
               )}
               {activeTab === 'quiz' && <QuizTab quiz={lesson.quiz} lessonId={lessonId || '0'} courseId={courseId || '0'} />}
-              {activeTab === 'challenges' && <ChallengesTab challenges={lesson.challenges} lessonId={parseInt(lessonId || '0')} />}
+              {activeTab === 'challenges' && <ChallengesTab challenges={lesson.challenges} lessonId={parseInt(lessonId || '0')} courseId={courseId || '0'} />}
               {activeTab === 'comments' && <CommentsTab lessonId={parseInt(lessonId || '0')} comments={comments} />}
             </div>
           </div>
@@ -655,10 +655,17 @@ function QuizTab({ quiz, lessonId: lessonIdStr, courseId: courseIdStr }: { quiz:
     </div>
   )
 }
-function ChallengesTab({ challenges, lessonId }: { challenges: CodeChallenge[]; lessonId: number }) {
+function ChallengesTab({ challenges, lessonId, courseId }: { challenges: CodeChallenge[]; lessonId: number; courseId: string }) {
   const [selectedChallenge, setSelectedChallenge] = useState<CodeChallenge | null>(
     challenges.length > 0 ? challenges[0] : null
   )
+  const queryClient = useQueryClient()
+
+  const handleChallengePass = () => {
+    queryClient.invalidateQueries({ queryKey: ['lesson', lessonId.toString()] })
+    queryClient.invalidateQueries({ queryKey: ['courseSections', courseId] })
+    setSelectedChallenge(null)
+  }
 
   if (!challenges || challenges.length === 0) {
     return (
@@ -679,7 +686,7 @@ function ChallengesTab({ challenges, lessonId }: { challenges: CodeChallenge[]; 
           <ChevronDown className="w-5 h-5 rotate-90" />
           Quay lại danh sách
         </button>
-        <CodeChallengeTest challenge={selectedChallenge} lessonId={lessonId} />
+        <CodeChallengeTest challenge={selectedChallenge} lessonId={lessonId} onChallengePass={handleChallengePass} />
       </div>
     )
   }
@@ -753,6 +760,8 @@ function CommentsTab({ lessonId, comments }: { lessonId: number, comments: any[]
   const [newComment, setNewComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const commentsList = Array.isArray(comments) ? comments : []
+
   const handleAddComment = async () => {
     if (!newComment.trim()) return
 
@@ -775,7 +784,7 @@ function CommentsTab({ lessonId, comments }: { lessonId: number, comments: any[]
     <div className="space-y-6">
       {/* New Comment Form */}
       <div className="border border-gray-200 rounded-lg p-4">
-        <h3 className="font-bold text-gray-900 mb-3">Thảo luận & Câu hỏi</h3>
+        <h3 className="font-bold text-gray-900 mb-3">Thảo luận & Hỏi đáp</h3>
         <div className="space-y-3">
           <textarea
             value={newComment}
@@ -791,7 +800,7 @@ function CommentsTab({ lessonId, comments }: { lessonId: number, comments: any[]
               disabled={!newComment.trim() || isSubmitting}
               className="px-4 py-2 bg-orange-500 text-white font-medium rounded hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Đang gửi...' : 'Gửi câu hỏi'}
+              {isSubmitting ? 'Đang gửi...' : 'Gửi bình luận'}
             </button>
           </div>
         </div>
@@ -801,24 +810,21 @@ function CommentsTab({ lessonId, comments }: { lessonId: number, comments: any[]
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-gray-900">
-            {comments.length} bình luận
+            {commentsList.length} bình luận
           </h3>
           <button className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
             Làm mới
           </button>
         </div>
 
-        {comments.length > 0 ? (
+        {commentsList.length > 0 ? (
           <div className="space-y-4">
-            {comments.map((comment: any) => (
+            {commentsList.map((comment: any) => (
               <div key={comment.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <p className="font-semibold text-gray-900">{comment.user?.fullName}</p>
+                    <p className="font-semibold text-gray-900">{comment.userName}</p>
                     <p className="text-xs text-gray-500">{new Date(comment.createdAt).toLocaleDateString('vi-VN')}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-gray-600">
-                    👍 {comment.upvotes || 0}
                   </div>
                 </div>
                 <p className="text-gray-700 text-sm mb-3">{comment.content}</p>
@@ -832,7 +838,7 @@ function CommentsTab({ lessonId, comments }: { lessonId: number, comments: any[]
                     {comment.replies.map((reply: any) => (
                       <div key={reply.id}>
                         <div>
-                          <p className="font-semibold text-sm text-gray-900">{reply.user?.fullName}</p>
+                          <p className="font-semibold text-sm text-gray-900">{reply.userName}</p>
                           <p className="text-xs text-gray-500">{new Date(reply.createdAt).toLocaleDateString('vi-VN')}</p>
                         </div>
                         <p className="text-gray-700 text-sm mt-1">{reply.content}</p>

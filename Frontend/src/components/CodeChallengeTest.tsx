@@ -34,9 +34,10 @@ interface CodeChallenge {
 interface CodeChallengeTestProps {
   challenge: CodeChallenge
   lessonId: number
+  onChallengePass?: () => void
 }
 
-export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProps) {
+export function CodeChallengeTest({ challenge, lessonId, onChallengePass }: CodeChallengeTestProps) {
   const [language, setLanguage] = useState('javascript')
   const [code, setCode] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -82,6 +83,13 @@ export function CodeChallengeTest({ challenge, lessonId }: CodeChallengeTestProp
         }
       )
       setResult(response.data)
+      
+      // ✅ FIX: Gọi callback nếu code challenge ACCEPTED để sidebar cập nhật tiến độ
+      if (response.data.status === 'ACCEPTED' && onChallengePass) {
+        setTimeout(() => {
+          onChallengePass()
+        }, 2000) // Delay 2 giây để người dùng thấy kết quả
+      }
     } catch (err) {
       console.error('Error submitting code:', err)
       alert('Lỗi khi nộp bài')
