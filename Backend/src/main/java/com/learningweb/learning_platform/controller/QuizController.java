@@ -36,6 +36,18 @@ public class QuizController {
         // ✅ VẤN ĐỀ 2 FIX: Kiểm tra user đã pass quiz này trước đó chưa
         boolean hasAlreadyPassed = attemptRepository.hasUserPassedQuiz(user.getId(), quizId);
         if (hasAlreadyPassed) {
+            // ✅ LUÔN cập nhật LessonProgress.completed ngay cả khi user đã pass rồi
+            Lesson lesson = quiz.getLesson();
+            if (lesson != null) {
+                LessonProgress progress = lessonProgressRepository.findByUserAndLesson(user, lesson)
+                        .orElse(LessonProgress.builder().user(user).lesson(lesson).build());
+                if (!progress.isCompleted()) {
+                    progress.setCompleted(true);
+                    lessonProgressRepository.save(progress);
+                    System.out.println("✅ Cập nhật LessonProgress cho bài học " + lesson.getId() + " (user đã pass quiz này trước đó)");
+                }
+            }
+            
             // Lấy attempt pass cũ để return thông tin (format giống như lần đầu pass)
             QuizAttempt previousAttempt = attemptRepository.findPassedAttemptByUserAndQuiz(user, quiz).orElse(null);
             System.out.println("⚠️ User " + user.getEmail() + " đã pass quiz này rồi. Không cộng thêm XP.");

@@ -31,6 +31,15 @@ public class LessonProgress {
 
     @PrePersist
     protected void onCreate() {
-        completedAt = LocalDateTime.now();
+        if (completed) {
+            completedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        if (completed && completedAt == null) {
+            completedAt = LocalDateTime.now();
+        }
     }
 }
