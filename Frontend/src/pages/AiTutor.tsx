@@ -1,12 +1,246 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { Layout } from '@/components/Layout'
-import { Bot, ArrowLeft, MessageSquare } from 'lucide-react'
+import { Bot, ArrowLeft, Check, X, Zap, AlertCircle } from 'lucide-react'
+import { axiosClient } from '@/config/axiosClient'
+
+// ============ TYPES ============
+
+type Step = 'language' | 'level' | 'goal' | 'time' | 'generating' | 'success'
+
+interface LearningPathRequest {
+  targetLanguage: string
+  currentLevel: string
+  studyGoal: string
+  hoursPerWeek: string
+}
+
+// ============ DATA CONSTANTS ============
+
+const LANGUAGES = [
+  'JavaScript', 'Python', 'Java', 'TypeScript', 'C', 'C++', 'Go', 'Rust', 'PHP', 'C#', 'Ruby',
+]
+
+const FRAMEWORKS = [
+  'React', 'Vue.js', 'Angular', 'Django', 'Spring Boot', 'Express', 'FastAPI', 'Laravel', '.NET', 'ASP.NET',
+]
+
+const LEVELS = [
+  { id: 'beginner', label: 'Mới bắt đầu', desc: 'Mới bắt đầu, chưa có kinh nghiệm' },
+  { id: 'intermediate', label: 'Trung cấp', desc: 'Có kinh nghiệm, hiểu cơ bản' },
+  { id: 'advanced', label: 'Nâng cao', desc: 'Nên tăng vừng, sản sáng nâng cao' },
+]
+
+const GOALS = [
+  { id: 'job', icon: '💼', label: 'Xin việc làm developer', desc: 'Xin việc làm developer đầu tiên' },
+  { id: 'skill', icon: '⚡', label: 'Trung cấp', desc: 'Có kinh nghiệm, hiểu cơ bản' },
+  { id: 'upgrade', icon: '🏆', label: 'Nâng cao', desc: 'Nên tăng vừng, sản sáng nâng cao' },
+  { id: 'freelance', icon: '💻', label: 'Học DevOps và quản lý hệ thống', desc: 'Hệ thống & triển khai hệ thống' },
+  { id: 'qa', icon: '🚀', label: 'Xây dựng ứng dụng web fullstack', desc: 'Ứng dụng iOS & Android' },
+  { id: 'ba', icon: '🛠️', label: 'Nâng cao kỹ năng lập trình', desc: 'Nâng cao kỹ năng lập trình' },
+  { id: 'custom', icon: '✏️', label: 'Mục tiêu tùy chỉnh', desc: 'Viết mục tiêu của riêng bạn' },
+]
+
+const HOURS_PER_WEEK = [
+  { id: '3', label: '3 giờ/tuần (Thỏai mái)' },
+  { id: '5', label: '5 giờ/tuần (Bản thông gian)' },
+  { id: '10', label: '10 giờ/tuần (Thường xuyên)' },
+  { id: '15', label: '15 giờ/tuần (Chuyên cần)' },
+  { id: '20', label: '20 giờ/tuần (Tích cực)' },
+  { id: '30', label: '30 giờ/tuần (Toàn thời gian)' },
+  { id: '40', label: '40+ giờ/tuần (Chuyên sâu)' },
+]
+
+// ============ COMPONENTS ============
+
+function Step1Language({ 
+  selected, 
+  onSelect 
+}: { 
+  selected: string | null
+  onSelect: (value: string) => void 
+}) {
+  return (
+    <div>
+      <h3 className="text-xl font-bold text-gray-800 mb-6">Bạn muốn học gì?</h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {[...LANGUAGES, ...FRAMEWORKS].map((lang) => (
+          <button
+            key={lang}
+            onClick={() => onSelect(lang)}
+            className={`p-4 rounded-lg border-2 font-medium transition-all ${
+              selected === lang
+                ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300'
+            }`}
+          >
+            {lang}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Step2Level({
+  selected,
+  onSelect
+}: {
+  selected: string | null
+  onSelect: (value: string) => void
+}) {
+  return (
+    <div>
+      <h3 className="text-xl font-bold text-gray-800 mb-6">Trình độ hiện tại của bạn</h3>
+      <div className="space-y-3">
+        {LEVELS.map((level) => (
+          <button
+            key={level.id}
+            onClick={() => onSelect(level.id)}
+            className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+              selected === level.id
+                ? 'border-indigo-600 bg-indigo-50'
+                : 'border-gray-200 bg-white hover:border-indigo-300'
+            }`}
+          >
+            <h4 className={`font-semibold ${selected === level.id ? 'text-indigo-600' : 'text-gray-800'}`}>
+              {level.label}
+            </h4>
+            <p className="text-sm text-gray-600 mt-1">{level.desc}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function Step3Goal({
+  selected,
+  customGoal,
+  onSelect,
+  onCustomChange,
+  showCustomInput
+}: {
+  selected: string | null
+  customGoal: string
+  onSelect: (value: string) => void
+  onCustomChange: (value: string) => void
+  showCustomInput: boolean
+}) {
+  return (
+    <div>
+      <h3 className="text-xl font-bold text-gray-800 mb-6">Mục tiêu của bạn là gì?</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {GOALS.map((goal) => (
+          <button
+            key={goal.id}
+            onClick={() => onSelect(goal.id)}
+            className={`p-4 rounded-lg border-2 text-left transition-all ${
+              selected === goal.id
+                ? 'border-indigo-600 bg-indigo-50'
+                : 'border-gray-200 bg-white hover:border-indigo-300'
+            }`}
+          >
+            <div className="text-2xl mb-2">{goal.icon}</div>
+            <h4 className={`font-semibold ${selected === goal.id ? 'text-indigo-600' : 'text-gray-800'}`}>
+              {goal.label}
+            </h4>
+            <p className="text-sm text-gray-600 mt-1">{goal.desc}</p>
+          </button>
+        ))}
+      </div>
+
+      {showCustomInput && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Nhập mục tiêu tùy chỉnh</label>
+          <textarea
+            value={customGoal}
+            onChange={(e) => onCustomChange(e.target.value)}
+            placeholder="Mô tả chi tiết mục tiêu học tập của bạn..."
+            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            rows={4}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Step4Time({
+  selected,
+  onSelect
+}: {
+  selected: string | null
+  onSelect: (value: string) => void
+}) {
+  return (
+    <div>
+      <h3 className="text-xl font-bold text-gray-800 mb-2">Bạn có thể học bao nhiêu giờ mỗi tuần?</h3>
+      <p className="text-gray-600 mb-6">Thời gian học ưa thích</p>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+        {HOURS_PER_WEEK.map((time) => (
+          <button
+            key={time.id}
+            onClick={() => onSelect(time.id)}
+            className={`p-4 rounded-lg border-2 font-medium transition-all text-left ${
+              selected === time.id
+                ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300'
+            }`}
+          >
+            ⏰ {time.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="font-semibold text-blue-900 mb-2">💡 Lịch hoạt động (Bắt kỳ lúc nào)</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {[
+            { time: 'Sáng (6AM - 12PM)', selected: true },
+            { time: 'Chiều (12PM - 5PM)', selected: false },
+            { time: 'Tối (5PM - 9PM)', selected: false },
+            { time: 'Đêm (9PM - 12AM)', selected: false },
+          ].map((slot) => (
+            <button
+              key={slot.time}
+              className={`p-3 rounded-lg text-sm font-medium transition-all ${
+                slot.selected
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white border border-blue-200 text-gray-700'
+              }`}
+            >
+              {slot.time}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============ MAIN COMPONENT ============
 
 export default function AiTutor() {
   const { token, user } = useAuthStore()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  // ===== STATES =====
+  const [currentStep, setCurrentStep] = useState<Step>('language')
+  const [showCustomGoal, setShowCustomGoal] = useState(false)
+  
+  const [formData, setFormData] = useState<LearningPathRequest>({
+    targetLanguage: '',
+    currentLevel: '',
+    studyGoal: '',
+    hoursPerWeek: '',
+  })
+
+  const [customGoal, setCustomGoal] = useState('')
 
   useEffect(() => {
     if (!token || !user) {
@@ -14,9 +248,95 @@ export default function AiTutor() {
     }
   }, [token, user, navigate])
 
+  // ===== MUTATIONS =====
+  const generateMutation = useMutation({
+    mutationFn: async (data: LearningPathRequest) => {
+      const response = await axiosClient.post('/ai-tutor/generate', data)
+      return response.data
+    },
+    onSuccess: (data) => {
+      setCurrentStep('success')
+      // Update user tokens in store
+      useAuthStore.getState().updateTokens(user!.aiTokens - 1)
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+    },
+    onError: (error: any) => {
+      alert(error.response?.data || 'Lỗi khi generate lộ trình')
+      setCurrentStep('time')
+    },
+  })
+
+  // ===== HANDLERS =====
+  const handleNext = () => {
+    if (currentStep === 'language' && !formData.targetLanguage) {
+      alert('Vui lòng chọn ngôn ngữ/framework')
+      return
+    }
+    if (currentStep === 'level' && !formData.currentLevel) {
+      alert('Vui lòng chọn trình độ')
+      return
+    }
+    if (currentStep === 'goal' && !formData.studyGoal) {
+      alert('Vui lòng chọn mục tiêu')
+      return
+    }
+    if (currentStep === 'time' && !formData.hoursPerWeek) {
+      alert('Vui lòng chọn thời gian học')
+      return
+    }
+
+    if (currentStep === 'language') setCurrentStep('level')
+    else if (currentStep === 'level') setCurrentStep('goal')
+    else if (currentStep === 'goal') setCurrentStep('time')
+    else if (currentStep === 'time') {
+      setCurrentStep('generating')
+      // Generate path
+      const goalValue = formData.studyGoal === 'custom' ? customGoal : formData.studyGoal
+      generateMutation.mutate({
+        ...formData,
+        studyGoal: goalValue,
+      })
+    }
+  }
+
+  const handleGoalSelect = (goalId: string) => {
+    if (goalId === 'custom') {
+      setShowCustomGoal(true)
+    } else {
+      setShowCustomGoal(false)
+    }
+    setFormData({ ...formData, studyGoal: goalId })
+  }
+
+  const handleBack = () => {
+    if (currentStep === 'language') navigate('/')
+    else if (currentStep === 'level') setCurrentStep('language')
+    else if (currentStep === 'goal') setCurrentStep('level')
+    else if (currentStep === 'time') setCurrentStep('goal')
+  }
+
+  const handleReset = () => {
+    setCurrentStep('language')
+    setFormData({
+      targetLanguage: '',
+      currentLevel: '',
+      studyGoal: '',
+      hoursPerWeek: '',
+    })
+    setCustomGoal('')
+    setShowCustomGoal(false)
+  }
+
   if (!token || !user) {
     return null
   }
+
+  // Get step index for progress
+  const steps = ['language', 'level', 'goal', 'time']
+  const stepIndex = steps.indexOf(currentStep)
+
+  // Token check for generation step
+  const canGenerate = user.aiTokens > 0
 
   return (
     <Layout>
@@ -30,58 +350,197 @@ export default function AiTutor() {
             <ArrowLeft className="w-4 h-4" />
             Quay lại
           </button>
-          <div className="flex items-center gap-3">
-            <Bot className="w-7 h-7 text-indigo-600" />
-            <h1 className="text-3xl font-bold text-gray-800">Gia Sư AI</h1>
-          </div>
-          <p className="text-gray-600 mt-2">Nhận hỗ trợ học tập từ AI tutor 24/7</p>
-        </div>
-
-        {/* Chat Interface Placeholder */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          {/* Chat Header */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-800">Chat với AI Tutor</h2>
-            <p className="text-sm text-gray-600">Đã dùng: {user.aiTokens || 0} / 10 lượt</p>
-          </div>
-
-          {/* Chat Area */}
-          <div className="h-96 bg-gray-50 overflow-y-auto p-6 space-y-4">
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm flex-shrink-0">
-                AI
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Bot className="w-7 h-7 text-indigo-600" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">Trợ lý AI Học tập</h1>
+                <p className="text-gray-600 mt-1">Hãy cùng tạo lộ trình học tập cá nhân hóa của bạn!</p>
               </div>
-              <div className="bg-white rounded-lg p-4 max-w-xs border border-gray-200">
-                <p className="text-sm text-gray-700">
-                  Xin chào! Tôi là AI Tutor của bạn. Hỏi tôi bất kỳ câu hỏi nào về lập trình, toán học, hoặc các môn học khác!
-                </p>
+            </div>
+            <div className="text-right">
+              <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <Zap className="w-5 h-5 text-yellow-600" />
+                <span className="font-semibold text-yellow-700">{user.aiTokens}</span>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Input Area */}
-          <div className="border-t border-gray-100 p-4">
-            <div className="flex gap-3">
-              <input
-                type="text"
-                placeholder="Hỏi AI Tutor của bạn..."
-                className="flex-1 px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                disabled
-              />
-              <button className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                <MessageSquare className="w-5 h-5" />
+        {/* Main Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {/* Progress */}
+          <div className="px-6 md:px-8 pt-8 pb-6">
+            <div className="flex items-center justify-between mb-6">
+              {['Ngôn ngữ', 'Trình độ', 'Mục tiêu', 'Thời gian'].map((label, idx) => (
+                <div key={label} className="flex items-center flex-1">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                      idx < stepIndex
+                        ? 'bg-green-500 text-white'
+                        : idx === stepIndex
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {idx < stepIndex ? <Check className="w-6 h-6" /> : idx + 1}
+                  </div>
+                  <div
+                    className={`h-1 flex-1 mx-2 rounded-full ${
+                      idx < stepIndex ? 'bg-green-500' : 'bg-gray-200'
+                    }`}
+                  />
+                </div>
+              ))}
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                  stepIndex > 3 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
+                }`}
+              >
+                {stepIndex > 3 ? <Check className="w-6 h-6" /> : '5'}
+              </div>
+            </div>
+
+            {/* Step Content */}
+            <div className="min-h-96">
+              {currentStep === 'language' && (
+                <Step1Language
+                  selected={formData.targetLanguage}
+                  onSelect={(value) => setFormData({ ...formData, targetLanguage: value })}
+                />
+              )}
+
+              {currentStep === 'level' && (
+                <Step2Level
+                  selected={formData.currentLevel}
+                  onSelect={(value) => setFormData({ ...formData, currentLevel: value })}
+                />
+              )}
+
+              {currentStep === 'goal' && (
+                <Step3Goal
+                  selected={formData.studyGoal}
+                  customGoal={customGoal}
+                  onSelect={handleGoalSelect}
+                  onCustomChange={setCustomGoal}
+                  showCustomInput={showCustomGoal}
+                />
+              )}
+
+              {currentStep === 'time' && (
+                <Step4Time
+                  selected={formData.hoursPerWeek}
+                  onSelect={(value) => setFormData({ ...formData, hoursPerWeek: value })}
+                />
+              )}
+
+              {currentStep === 'generating' && (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-6 animate-pulse">
+                    <Bot className="w-8 h-8 text-indigo-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">Đang tạo lộ trình...</h3>
+                  <p className="text-gray-600">AI đang phân tích yêu cầu của bạn</p>
+                  <div className="mt-6 flex gap-2">
+                    <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 'success' && (
+                <div className="flex flex-col items-center justify-center py-20">
+                  <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-6">
+                    <Check className="w-10 h-10 text-green-600" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">Tạo lộ trình thành công!</h3>
+                  <p className="text-gray-600 mb-8 text-center max-w-md">
+                    Lộ trình học tập của bạn đã được tạo. Hãy bắt đầu học thôi!
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => navigate('/')}
+                      className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      Về trang chủ
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      className="px-6 py-3 border border-indigo-200 text-indigo-600 font-semibold rounded-lg hover:bg-indigo-50 transition-colors"
+                    >
+                      Tạo lộ trình mới
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer Buttons */}
+          {currentStep !== 'success' && (
+            <div className="px-6 md:px-8 py-6 border-t border-gray-100 flex items-center justify-between bg-gray-50">
+              <button
+                onClick={handleBack}
+                className="px-6 py-3 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50"
+                disabled={currentStep === 'language'}
+              >
+                Quay lại
+              </button>
+
+              {currentStep !== 'generating' && (
+                <>
+                  {currentStep === 'time' && !canGenerate ? (
+                    <button
+                      disabled
+                      className="px-8 py-3 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed flex items-center gap-2"
+                    >
+                      <AlertCircle className="w-5 h-5" />
+                      Hết token
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleNext}
+                      className={`px-8 py-3 font-semibold rounded-lg transition-colors flex items-center gap-2 ${
+                        currentStep === 'time'
+                          ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white'
+                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      }`}
+                    >
+                      {currentStep === 'time' ? (
+                        <>
+                          <Zap className="w-5 h-5" />
+                          Tạo Lộ trình của Tôi
+                        </>
+                      ) : (
+                        'Tiếp tục'
+                      )}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Token Warning */}
+        {!canGenerate && (
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-red-900">Bạn đã hết Token</h4>
+              <p className="text-sm text-red-800 mt-1">
+                Bạn cần mua thêm token để tiếp tục tạo lộ trình. Vui lòng nâng cấp gói premium của bạn.
+              </p>
+              <button
+                onClick={() => navigate('/')}
+                className="mt-3 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Nâng cấp ngay
               </button>
             </div>
           </div>
-        </div>
-
-        {/* Info */}
-        <div className="mt-8 p-6 bg-blue-50 rounded-xl border border-blue-200">
-          <h3 className="font-semibold text-blue-900 mb-2">💡 Mẹo sử dụng</h3>
-          <p className="text-sm text-blue-800">
-            AI Tutor có thể giúp bạn giải thích bài học, phân tích code, và trả lời các câu hỏi học tập. Mỗi lần chat sẽ tiêu tốn 1 lượt AI Token.
-          </p>
-        </div>
+        )}
       </div>
     </Layout>
   )
