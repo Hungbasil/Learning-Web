@@ -424,7 +424,7 @@ export function LessonDetail() {
                     : 'text-yellow-800'
                 }`}>
                   {lesson.quizPassed 
-                    ? '✅ Bạn đã vượt qua bài kiểm tra' 
+                    ? 'Bạn đã vượt qua bài kiểm tra' 
                     : 'Vượt qua ít nhất 1 bài kiểm tra'}
                 </p>
               </div>
@@ -514,7 +514,7 @@ export function LessonDetail() {
               {activeTab === 'materials' && (
                 <MaterialsTab materials={lesson.materials} lessonContent={lesson.content} />
               )}
-              {activeTab === 'quiz' && <QuizTab quiz={lesson.quiz} lessonId={lessonId || '0'} />}
+              {activeTab === 'quiz' && <QuizTab quiz={lesson.quiz} lessonId={lessonId || '0'} courseId={courseId || '0'} />}
               {activeTab === 'challenges' && <ChallengesTab challenges={lesson.challenges} lessonId={parseInt(lessonId || '0')} />}
               {activeTab === 'comments' && <CommentsTab lessonId={parseInt(lessonId || '0')} comments={comments} />}
             </div>
@@ -584,13 +584,14 @@ function MaterialsTab({
   )
 }
 
-function QuizTab({ quiz, lessonId: lessonIdStr }: { quiz: QuizInfo | null; lessonId: string }) {
+function QuizTab({ quiz, lessonId: lessonIdStr, courseId: courseIdStr }: { quiz: QuizInfo | null; lessonId: string; courseId: string }) {
   const [started, setStarted] = useState(false)
   const queryClient = useQueryClient()
 
   const handleQuizPass = () => {
-    // Invalidate lesson query với string lessonId để match với query key
+    // ✅ FIX: Invalidate cả lesson và courseSections queries để sidebar cập nhật tiến độ
     queryClient.invalidateQueries({ queryKey: ['lesson', lessonIdStr] })
+    queryClient.invalidateQueries({ queryKey: ['courseSections', courseIdStr] })
     setStarted(false)
   }
 
