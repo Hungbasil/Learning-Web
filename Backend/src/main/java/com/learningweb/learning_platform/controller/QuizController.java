@@ -87,12 +87,8 @@ public class QuizController {
                 .build();
         attemptRepository.save(attempt);
 
-        if (isPassed && totalEarnedXp > 0) {
-            user.setTotalXp((user.getTotalXp() == null ? 0 : user.getTotalXp()) + totalEarnedXp);
-            userRepository.save(user);
-            System.out.println("✨ Đã cộng " + totalEarnedXp + " XP cho học viên: " + user.getEmail());
-            
-            // ✅ VẤN ĐỀ 1 FIX: Update LessonProgress.completed = true
+        // ✅ VẤN ĐỀ 1 FIX: Update LessonProgress.completed = true khi isPassed (bất kể XP)
+        if (isPassed) {
             Lesson lesson = quiz.getLesson();
             if (lesson != null) {
                 LessonProgress progress = lessonProgressRepository.findByUserAndLesson(user, lesson)
@@ -101,6 +97,13 @@ public class QuizController {
                 lessonProgressRepository.save(progress);
                 System.out.println("✅ Đã đánh dấu bài học " + lesson.getId() + " là hoàn thành cho " + user.getEmail());
             }
+        }
+
+        // Cộng XP chỉ khi pass và có XP reward
+        if (isPassed && totalEarnedXp > 0) {
+            user.setTotalXp((user.getTotalXp() == null ? 0 : user.getTotalXp()) + totalEarnedXp);
+            userRepository.save(user);
+            System.out.println("✨ Đã cộng " + totalEarnedXp + " XP cho học viên: " + user.getEmail());
         }
 
         // Return response format thống nhất
