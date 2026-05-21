@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { Layout } from '@/components/Layout'
-import { Bot, ArrowLeft, Check, X, Zap, AlertCircle } from 'lucide-react'
+import { Bot, ArrowLeft, Check, X, Zap, AlertCircle, Search, Globe, Code2, Smartphone, Database, Cloud, Server, Package } from 'lucide-react'
 import { axiosClient } from '@/config/axiosClient'
 
 // ============ TYPES ============
 
 type Step = 'language' | 'level' | 'goal' | 'time' | 'generating' | 'success'
+type MainStep = 'basics' | 'options' | 'generating'
+type LanguageCategory = 'popular' | 'frontend' | 'backend' | 'mobile' | 'data' | 'devops' | 'database' | 'other'
 
 interface LearningPathRequest {
   targetLanguage: string
@@ -17,15 +19,86 @@ interface LearningPathRequest {
   hoursPerWeek: string
 }
 
+interface LanguageItem {
+  id: string
+  name: string
+  icon: string
+  category: LanguageCategory
+}
+
 // ============ DATA CONSTANTS ============
 
-const LANGUAGES = [
-  'JavaScript', 'Python', 'Java', 'TypeScript', 'C', 'C++', 'Go', 'Rust', 'PHP', 'C#', 'Ruby',
+const LANGUAGE_DATA: LanguageItem[] = [
+  // Popular
+  { id: 'javascript', name: 'JavaScript', icon: '🔥', category: 'popular' },
+  { id: 'python', name: 'Python', icon: '🔥', category: 'popular' },
+  { id: 'java', name: 'Java', icon: '🔥', category: 'popular' },
+  { id: 'typescript', name: 'TypeScript', icon: '🔥', category: 'popular' },
+
+  // Frontend
+  { id: 'react', name: 'React', icon: '🌍', category: 'frontend' },
+  { id: 'vue', name: 'Vue.js', icon: '🌍', category: 'frontend' },
+  { id: 'angular', name: 'Angular', icon: '🌍', category: 'frontend' },
+  { id: 'svelte', name: 'Svelte', icon: '🌍', category: 'frontend' },
+  { id: 'nextjs', name: 'Next.js', icon: '🌍', category: 'frontend' },
+  { id: 'nuxt', name: 'Nuxt.js', icon: '🌍', category: 'frontend' },
+
+  // Backend
+  { id: 'nodejs', name: 'Node.js', icon: '⚙️', category: 'backend' },
+  { id: 'django', name: 'Django', icon: '⚙️', category: 'backend' },
+  { id: 'flask', name: 'Flask', icon: '⚙️', category: 'backend' },
+  { id: 'fastapi', name: 'FastAPI', icon: '⚙️', category: 'backend' },
+  { id: 'spring', name: 'Spring Boot', icon: '⚙️', category: 'backend' },
+  { id: 'laravel', name: 'Laravel', icon: '⚙️', category: 'backend' },
+  { id: 'rails', name: 'Ruby on Rails', icon: '⚙️', category: 'backend' },
+  { id: 'express', name: 'Express.js', icon: '⚙️', category: 'backend' },
+  { id: 'nestjs', name: 'NestJS', icon: '⚙️', category: 'backend' },
+  { id: 'dotnet', name: 'ASP.NET', icon: '⚙️', category: 'backend' },
+
+  // Mobile
+  { id: 'react-native', name: 'React Native', icon: '📱', category: 'mobile' },
+  { id: 'flutter', name: 'Flutter', icon: '📱', category: 'mobile' },
+  { id: 'swift', name: 'Swift', icon: '📱', category: 'mobile' },
+  { id: 'kotlin', name: 'Kotlin', icon: '📱', category: 'mobile' },
+
+  // Data & AI
+  { id: 'tensorflow', name: 'TensorFlow', icon: '🤖', category: 'data' },
+  { id: 'pytorch', name: 'PyTorch', icon: '🤖', category: 'data' },
+  { id: 'pandas', name: 'Pandas', icon: '🤖', category: 'data' },
+  { id: 'scikit', name: 'Scikit-learn', icon: '🤖', category: 'data' },
+
+  // DevOps
+  { id: 'docker', name: 'Docker', icon: '☁️', category: 'devops' },
+  { id: 'kubernetes', name: 'Kubernetes', icon: '☁️', category: 'devops' },
+  { id: 'jenkins', name: 'Jenkins', icon: '☁️', category: 'devops' },
+  { id: 'terraform', name: 'Terraform', icon: '☁️', category: 'devops' },
+
+  // Database
+  { id: 'postgresql', name: 'PostgreSQL', icon: '🗄️', category: 'database' },
+  { id: 'mysql', name: 'MySQL', icon: '🗄️', category: 'database' },
+  { id: 'mongodb', name: 'MongoDB', icon: '🗄️', category: 'database' },
+  { id: 'redis', name: 'Redis', icon: '🗄️', category: 'database' },
+
+  // Other
+  { id: 'c', name: 'C', icon: '📝', category: 'other' },
+  { id: 'cpp', name: 'C++', icon: '📝', category: 'other' },
+  { id: 'go', name: 'Go', icon: '📝', category: 'other' },
+  { id: 'rust', name: 'Rust', icon: '📝', category: 'other' },
+  { id: 'php', name: 'PHP', icon: '📝', category: 'other' },
+  { id: 'csharp', name: 'C#', icon: '📝', category: 'other' },
+  { id: 'ruby', name: 'Ruby', icon: '📝', category: 'other' },
 ]
 
-const FRAMEWORKS = [
-  'React', 'Vue.js', 'Angular', 'Django', 'Spring Boot', 'Express', 'FastAPI', 'Laravel', '.NET', 'ASP.NET',
-]
+const CATEGORY_INFO: Record<LanguageCategory, { label: string; icon: React.ReactNode; color: string }> = {
+  popular: { label: 'Popular', icon: '🔥', color: 'text-red-500' },
+  frontend: { label: 'Frontend', icon: '🌍', color: 'text-blue-500' },
+  backend: { label: 'Backend', icon: '⚙️', color: 'text-orange-500' },
+  mobile: { label: 'Mobile', icon: '📱', color: 'text-green-500' },
+  data: { label: 'Data & AI', icon: '🤖', color: 'text-purple-500' },
+  devops: { label: 'DevOps', icon: '☁️', color: 'text-cyan-500' },
+  database: { label: 'Database', icon: '🗄️', color: 'text-pink-500' },
+  other: { label: 'Other', icon: '📝', color: 'text-gray-500' },
+}
 
 const LEVELS = [
   { id: 'beginner', label: 'Mới bắt đầu', desc: 'Mới bắt đầu, chưa có kinh nghiệm' },
@@ -55,32 +128,583 @@ const HOURS_PER_WEEK = [
 
 // ============ COMPONENTS ============
 
-function Step1Language({ 
-  selected, 
-  onSelect 
-}: { 
+function Step1Language({
+  selected,
+  onSelect,
+}: {
   selected: string | null
-  onSelect: (value: string) => void 
+  onSelect: (value: string) => void
 }) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [activeCategory, setActiveCategory] = useState<LanguageCategory>('popular')
+
+  const categories: LanguageCategory[] = ['popular', 'frontend', 'backend', 'mobile', 'data', 'devops', 'database', 'other']
+  
+  const filteredLanguages = LANGUAGE_DATA.filter((lang) => {
+    const matchesSearch = lang.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = activeCategory === 'popular' ? lang.category === 'popular' : lang.category === activeCategory
+    return matchesSearch && matchesCategory
+  })
+
   return (
     <div>
       <h3 className="text-xl font-bold text-gray-800 mb-6">Bạn muốn học gì?</h3>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {[...LANGUAGES, ...FRAMEWORKS].map((lang) => (
+
+      {/* Search Bar */}
+      <div className="relative mb-6">
+        <Search className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Tìm kiếm ngôn ngữ, framework, công cụ..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+        />
+      </div>
+
+      {/* Category Tabs */}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+        {categories.map((category) => {
+          const info = CATEGORY_INFO[category]
+          const count = LANGUAGE_DATA.filter((l) => l.category === category).length
+          return (
+            <button
+              key={category}
+              onClick={() => setActiveCategory(category)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                activeCategory === category
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <span className="text-lg">{info.icon}</span>
+              {info.label}
+              <span className="text-xs opacity-75">({count})</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Languages Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {filteredLanguages.length > 0 ? (
+          filteredLanguages.map((lang) => (
+            <button
+              key={lang.id}
+              onClick={() => onSelect(lang.name)}
+              className={`p-4 rounded-lg border-2 font-medium transition-all ${
+                selected === lang.name
+                  ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300'
+              }`}
+            >
+              <div className="text-2xl mb-2">{lang.icon}</div>
+              <div className="text-sm">{lang.name}</div>
+            </button>
+          ))
+        ) : (
+          <div className="col-span-full text-center py-8">
+            <p className="text-gray-500">Không tìm thấy kết quả cho "{searchTerm}"</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Step2Level({
+  selected,
+  onSelect
+}: {
+  selected: string | null
+  onSelect: (value: string) => void
+}) {
+  return (
+    <div>
+      <h3 className="text-xl font-bold text-gray-800 mb-6">Trình độ hiện tại của bạn</h3>
+      <div className="space-y-3">
+        {LEVELS.map((level) => (
           <button
-            key={lang}
-            onClick={() => onSelect(lang)}
-            className={`p-4 rounded-lg border-2 font-medium transition-all ${
-              selected === lang
-                ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300'
+            key={level.id}
+            onClick={() => onSelect(level.id)}
+            className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+              selected === level.id
+                ? 'border-indigo-600 bg-indigo-50'
+                : 'border-gray-200 bg-white hover:border-indigo-300'
             }`}
           >
-            {lang}
+            <h4 className={`font-semibold ${selected === level.id ? 'text-indigo-600' : 'text-gray-800'}`}>
+              {level.label}
+            </h4>
+            <p className="text-sm text-gray-600 mt-1">{level.desc}</p>
           </button>
         ))}
       </div>
     </div>
+  )
+}
+
+function Step3Goal({
+  selected,
+  customGoal,
+  onSelect,
+  onCustomChange,
+  showCustomInput
+}: {
+  selected: string | null
+  customGoal: string
+  onSelect: (value: string) => void
+  onCustomChange: (value: string) => void
+  showCustomInput: boolean
+}) {
+  return (
+    <div>
+      <h3 className="text-xl font-bold text-gray-800 mb-6">Mục tiêu của bạn là gì?</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {GOALS.map((goal) => (
+          <button
+            key={goal.id}
+            onClick={() => onSelect(goal.id)}
+            className={`p-4 rounded-lg border-2 text-left transition-all ${
+              selected === goal.id
+                ? 'border-indigo-600 bg-indigo-50'
+                : 'border-gray-200 bg-white hover:border-indigo-300'
+            }`}
+          >
+            <div className="text-2xl mb-2">{goal.icon}</div>
+            <h4 className={`font-semibold ${selected === goal.id ? 'text-indigo-600' : 'text-gray-800'}`}>
+              {goal.label}
+            </h4>
+            <p className="text-sm text-gray-600 mt-1">{goal.desc}</p>
+          </button>
+        ))}
+      </div>
+
+      {showCustomInput && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Nhập mục tiêu tùy chỉnh</label>
+          <textarea
+            value={customGoal}
+            onChange={(e) => onCustomChange(e.target.value)}
+            placeholder="Mô tả chi tiết mục tiêu học tập của bạn..."
+            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            rows={4}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function Step4Time({
+  selected,
+  onSelect
+}: {
+  selected: string | null
+  onSelect: (value: string) => void
+}) {
+  return (
+    <div>
+      <h3 className="text-xl font-bold text-gray-800 mb-2">Bạn có thể học bao nhiêu giờ mỗi tuần?</h3>
+      <p className="text-gray-600 mb-6">Thời gian học ưa thích</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+        {HOURS_PER_WEEK.map((time) => (
+          <button
+            key={time.id}
+            onClick={() => onSelect(time.id)}
+            className={`p-4 rounded-lg border-2 font-medium transition-all text-left ${
+              selected === time.id
+                ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300'
+            }`}
+          >
+            ⏰ {time.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h4 className="font-semibold text-blue-900 mb-2">💡 Lịch hoạt động (Bắt kỳ lúc nào)</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {[
+            { time: 'Sáng (6AM - 12PM)', selected: true },
+            { time: 'Chiều (12PM - 5PM)', selected: false },
+            { time: 'Tối (5PM - 9PM)', selected: false },
+            { time: 'Đêm (9PM - 12AM)', selected: false },
+          ].map((slot) => (
+            <button
+              key={slot.time}
+              className={`p-3 rounded-lg text-sm font-medium transition-all ${
+                slot.selected
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white border border-blue-200 text-gray-700'
+              }`}
+            >
+              {slot.time}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ============ MAIN COMPONENT ============
+
+export default function AiTutor() {
+  const { token, user } = useAuthStore()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  // ===== STATES =====
+  const [mainStep, setMainStep] = useState<MainStep>('basics')
+  const [basicSubStep, setBasicSubStep] = useState<'language' | 'level' | 'goal'>('language')
+  const [showCustomGoal, setShowCustomGoal] = useState(false)
+
+  const [formData, setFormData] = useState<LearningPathRequest>({
+    targetLanguage: '',
+    currentLevel: '',
+    studyGoal: '',
+    hoursPerWeek: '',
+  })
+
+  const [customGoal, setCustomGoal] = useState('')
+
+  useEffect(() => {
+    if (!token || !user) {
+      navigate('/login')
+    }
+  }, [token, user, navigate])
+
+  // ===== MUTATIONS =====
+  const generateMutation = useMutation({
+    mutationFn: async (data: LearningPathRequest) => {
+      const response = await axiosClient.post('/ai-tutor/generate', data)
+      return response.data
+    },
+    onSuccess: (data) => {
+      setMainStep('generating')
+      // Update user tokens in store
+      useAuthStore.getState().updateTokens(user!.aiTokens - 1)
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+    },
+    onError: (error: any) => {
+      alert(error.response?.data || 'Lỗi khi generate lộ trình')
+      setMainStep('options')
+    },
+  })
+
+  // ===== HANDLERS =====
+  const handleNextBasic = () => {
+    if (basicSubStep === 'language' && !formData.targetLanguage) {
+      alert('Vui lòng chọn ngôn ngữ/framework')
+      return
+    }
+    if (basicSubStep === 'level' && !formData.currentLevel) {
+      alert('Vui lòng chọn trình độ')
+      return
+    }
+    if (basicSubStep === 'goal' && !formData.studyGoal) {
+      alert('Vui lòng chọn mục tiêu')
+      return
+    }
+
+    if (basicSubStep === 'language') setBasicSubStep('level')
+    else if (basicSubStep === 'level') setBasicSubStep('goal')
+    else if (basicSubStep === 'goal') setMainStep('options')
+  }
+
+  const handleNextOptions = () => {
+    if (!formData.hoursPerWeek) {
+      alert('Vui lòng chọn thời gian học')
+      return
+    }
+
+    const goalValue = formData.studyGoal === 'custom' ? customGoal : formData.studyGoal
+    generateMutation.mutate({
+      ...formData,
+      studyGoal: goalValue,
+    })
+  }
+
+  const handleGoalSelect = (goalId: string) => {
+    if (goalId === 'custom') {
+      setShowCustomGoal(true)
+    } else {
+      setShowCustomGoal(false)
+    }
+    setFormData({ ...formData, studyGoal: goalId })
+  }
+
+  const handleBackBasic = () => {
+    if (basicSubStep === 'language') navigate('/')
+    else if (basicSubStep === 'level') setBasicSubStep('language')
+    else if (basicSubStep === 'goal') setBasicSubStep('level')
+  }
+
+  const handleBackToBasics = () => {
+    setMainStep('basics')
+    setBasicSubStep('goal')
+  }
+
+  const handleReset = () => {
+    setMainStep('basics')
+    setBasicSubStep('language')
+    setFormData({
+      targetLanguage: '',
+      currentLevel: '',
+      studyGoal: '',
+      hoursPerWeek: '',
+    })
+    setCustomGoal('')
+    setShowCustomGoal(false)
+  }
+
+  if (!token || !user) {
+    return null
+  }
+
+  const canGenerate = user.aiTokens > 0
+
+  return (
+    <Layout>
+      <div className="max-w-4xl mx-auto px-3 md:px-6 py-6 md:py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Quay lại
+          </button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Bot className="w-7 h-7 text-indigo-600" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-800">Trợ lý AI Học tập</h1>
+                <p className="text-gray-600 mt-1">Hãy cùng tạo lộ trình học tập cá nhân hóa của bạn!</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <Zap className="w-5 h-5 text-yellow-600" />
+                <span className="font-semibold text-yellow-700">{user.aiTokens}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {/* Main Tabs */}
+          <div className="flex border-b border-gray-100">
+            {[
+              { id: 'basics', label: 'Cơ bản', icon: '📋' },
+              { id: 'options', label: 'Tùy chọn', icon: '⏰', disabled: !formData.targetLanguage || !formData.currentLevel || !formData.studyGoal },
+              { id: 'generating', label: 'Tạo lộ trình', icon: '✨', disabled: true },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setMainStep(tab.id as MainStep)}
+                disabled={tab.disabled}
+                className={`flex-1 px-6 py-4 font-medium transition-all flex items-center justify-center gap-2 ${
+                  mainStep === tab.id
+                    ? 'border-b-2 border-indigo-600 text-indigo-600'
+                    : 'border-b-2 border-transparent text-gray-600 hover:text-gray-800'
+                } ${tab.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span>{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="px-6 md:px-8 pt-8 pb-6">
+            {/* BASICS TAB */}
+            {mainStep === 'basics' && (
+              <>
+                {/* Sub Tabs */}
+                <div className="flex gap-4 mb-8 border-b border-gray-200 pb-4">
+                  {[
+                    { id: 'language', label: 'Ngôn ngữ', number: 1 },
+                    { id: 'level', label: 'Trình Độ', number: 2 },
+                    { id: 'goal', label: 'Mục tiêu', number: 3 },
+                  ].map((subtab) => (
+                    <button
+                      key={subtab.id}
+                      onClick={() => setBasicSubStep(subtab.id as any)}
+                      className={`flex items-center gap-2 font-medium transition-all pb-2 border-b-2 ${
+                        basicSubStep === subtab.id
+                          ? 'border-indigo-600 text-indigo-600'
+                          : 'border-transparent text-gray-600 hover:text-gray-800'
+                      }`}
+                    >
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          basicSubStep === subtab.id
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-gray-200 text-gray-600'
+                        }`}
+                      >
+                        {subtab.number}
+                      </div>
+                      {subtab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Sub Step Content */}
+                <div className="min-h-96">
+                  {basicSubStep === 'language' && (
+                    <Step1Language
+                      selected={formData.targetLanguage}
+                      onSelect={(value) => setFormData({ ...formData, targetLanguage: value })}
+                    />
+                  )}
+
+                  {basicSubStep === 'level' && (
+                    <Step2Level
+                      selected={formData.currentLevel}
+                      onSelect={(value) => setFormData({ ...formData, currentLevel: value })}
+                    />
+                  )}
+
+                  {basicSubStep === 'goal' && (
+                    <Step3Goal
+                      selected={formData.studyGoal}
+                      customGoal={customGoal}
+                      onSelect={handleGoalSelect}
+                      onCustomChange={setCustomGoal}
+                      showCustomInput={showCustomGoal}
+                    />
+                  )}
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between bg-gray-50 -mx-6 -mb-6 px-6 py-6">
+                  <button
+                    onClick={handleBackBasic}
+                    className="px-6 py-3 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    Quay lại
+                  </button>
+
+                  <button
+                    onClick={handleNextBasic}
+                    className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    Tiếp tục
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* OPTIONS TAB */}
+            {mainStep === 'options' && (
+              <>
+                <Step4Time
+                  selected={formData.hoursPerWeek}
+                  onSelect={(value) => setFormData({ ...formData, hoursPerWeek: value })}
+                />
+
+                {/* Footer Buttons */}
+                <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between bg-gray-50 -mx-6 -mb-6 px-6 py-6">
+                  <button
+                    onClick={handleBackToBasics}
+                    className="px-6 py-3 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    Quay lại
+                  </button>
+
+                  {!canGenerate ? (
+                    <button
+                      disabled
+                      className="px-8 py-3 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed flex items-center gap-2"
+                    >
+                      <AlertCircle className="w-5 h-5" />
+                      Hết token
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleNextOptions}
+                      className="px-8 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <Zap className="w-5 h-5" />
+                      Tạo Lộ trình của Tôi
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* GENERATING TAB */}
+            {mainStep === 'generating' && (
+              <div className="flex flex-col items-center justify-center py-20">
+                {generateMutation.isPending ? (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-6 animate-pulse">
+                      <Bot className="w-8 h-8 text-indigo-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2">Đang tạo lộ trình...</h3>
+                    <p className="text-gray-600">AI đang phân tích yêu cầu của bạn</p>
+                    <div className="mt-6 flex gap-2">
+                      <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                      <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-6">
+                      <Check className="w-10 h-10 text-green-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Tạo lộ trình thành công!</h3>
+                    <p className="text-gray-600 mb-8 text-center max-w-md">
+                      Lộ trình học tập của bạn đã được tạo. Hãy bắt đầu học thôi!
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => navigate('/')}
+                        className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+                      >
+                        Về trang chủ
+                      </button>
+                      <button
+                        onClick={handleReset}
+                        className="px-6 py-3 border border-indigo-200 text-indigo-600 font-semibold rounded-lg hover:bg-indigo-50 transition-colors"
+                      >
+                        Tạo lộ trình mới
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Token Warning */}
+        {!canGenerate && mainStep === 'options' && (
+          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-red-900">Bạn đã hết Token</h4>
+              <p className="text-sm text-red-800 mt-1">
+                Bạn cần mua thêm token để tiếp tục tạo lộ trình. Vui lòng nâng cấp gói premium của bạn.
+              </p>
+              <button
+                onClick={() => navigate('/')}
+                className="mt-3 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Nâng cấp ngay
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Layout>
   )
 }
 
