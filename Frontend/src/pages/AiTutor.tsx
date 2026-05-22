@@ -9,7 +9,6 @@ import { axiosClient } from '@/config/axiosClient'
 // ============ TYPES ============
 
 type Step = 'language' | 'level' | 'goal' | 'time' | 'generating' | 'success'
-type MainStep = 'basics' | 'options' | 'generating'
 type LanguageCategory = 'popular' | 'frontend' | 'backend' | 'mobile' | 'data' | 'devops' | 'database' | 'other'
 
 interface LearningPathRequest {
@@ -350,501 +349,7 @@ function Step4Time({
   )
 }
 
-// ============ MAIN COMPONENT ============
 
-export default function AiTutor() {
-  const { token, user } = useAuthStore()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-
-  // ===== STATES =====
-  const [mainStep, setMainStep] = useState<MainStep>('basics')
-  const [basicSubStep, setBasicSubStep] = useState<'language' | 'level' | 'goal'>('language')
-  const [showCustomGoal, setShowCustomGoal] = useState(false)
-
-  const [formData, setFormData] = useState<LearningPathRequest>({
-    targetLanguage: '',
-    currentLevel: '',
-    studyGoal: '',
-    hoursPerWeek: '',
-  })
-
-  const [customGoal, setCustomGoal] = useState('')
-
-  useEffect(() => {
-    if (!token || !user) {
-      navigate('/login')
-    }
-  }, [token, user, navigate])
-
-  // ===== MUTATIONS =====
-  const generateMutation = useMutation({
-    mutationFn: async (data: LearningPathRequest) => {
-      const response = await axiosClient.post('/ai-tutor/generate', data)
-      return response.data
-    },
-    onSuccess: (data) => {
-      setMainStep('generating')
-      // Update user tokens in store
-      useAuthStore.getState().updateTokens(user!.aiTokens - 1)
-      queryClient.invalidateQueries({ queryKey: ['user'] })
-    },
-    onError: (error: any) => {
-      alert(error.response?.data || 'Lỗi khi generate lộ trình')
-      setMainStep('options')
-    },
-  })
-
-  // ===== HANDLERS =====
-  const handleNextBasic = () => {
-    if (basicSubStep === 'language' && !formData.targetLanguage) {
-      alert('Vui lòng chọn ngôn ngữ/framework')
-      return
-    }
-    if (basicSubStep === 'level' && !formData.currentLevel) {
-      alert('Vui lòng chọn trình độ')
-      return
-    }
-    if (basicSubStep === 'goal' && !formData.studyGoal) {
-      alert('Vui lòng chọn mục tiêu')
-      return
-    }
-
-    if (basicSubStep === 'language') setBasicSubStep('level')
-    else if (basicSubStep === 'level') setBasicSubStep('goal')
-    else if (basicSubStep === 'goal') setMainStep('options')
-  }
-
-  const handleNextOptions = () => {
-    if (!formData.hoursPerWeek) {
-      alert('Vui lòng chọn thời gian học')
-      return
-    }
-
-    const goalValue = formData.studyGoal === 'custom' ? customGoal : formData.studyGoal
-    generateMutation.mutate({
-      ...formData,
-      studyGoal: goalValue,
-    })
-  }
-
-  const handleGoalSelect = (goalId: string) => {
-    if (goalId === 'custom') {
-      setShowCustomGoal(true)
-    } else {
-      setShowCustomGoal(false)
-    }
-    setFormData({ ...formData, studyGoal: goalId })
-  }
-
-  const handleBackBasic = () => {
-    if (basicSubStep === 'language') navigate('/')
-    else if (basicSubStep === 'level') setBasicSubStep('language')
-    else if (basicSubStep === 'goal') setBasicSubStep('level')
-  }
-
-  const handleBackToBasics = () => {
-    setMainStep('basics')
-    setBasicSubStep('goal')
-  }
-
-  const handleReset = () => {
-    setMainStep('basics')
-    setBasicSubStep('language')
-    setFormData({
-      targetLanguage: '',
-      currentLevel: '',
-      studyGoal: '',
-      hoursPerWeek: '',
-    })
-    setCustomGoal('')
-    setShowCustomGoal(false)
-  }
-
-  if (!token || !user) {
-    return null
-  }
-
-  const canGenerate = user.aiTokens > 0
-
-  return (
-    <Layout>
-      <div className="max-w-4xl mx-auto px-3 md:px-6 py-6 md:py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Quay lại
-          </button>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Bot className="w-7 h-7 text-indigo-600" />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">Trợ lý AI Học tập</h1>
-                <p className="text-gray-600 mt-1">Hãy cùng tạo lộ trình học tập cá nhân hóa của bạn!</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="flex items-center gap-2 px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <Zap className="w-5 h-5 text-yellow-600" />
-                <span className="font-semibold text-yellow-700">{user.aiTokens}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          {/* Main Tabs */}
-          <div className="flex border-b border-gray-100">
-            {[
-              { id: 'basics', label: 'Cơ bản', icon: '📋' },
-              { id: 'options', label: 'Tùy chọn', icon: '⏰', disabled: !formData.targetLanguage || !formData.currentLevel || !formData.studyGoal },
-              { id: 'generating', label: 'Tạo lộ trình', icon: '✨', disabled: true },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setMainStep(tab.id as MainStep)}
-                disabled={tab.disabled}
-                className={`flex-1 px-6 py-4 font-medium transition-all flex items-center justify-center gap-2 ${
-                  mainStep === tab.id
-                    ? 'border-b-2 border-indigo-600 text-indigo-600'
-                    : 'border-b-2 border-transparent text-gray-600 hover:text-gray-800'
-                } ${tab.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <span>{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="px-6 md:px-8 pt-8 pb-6">
-            {/* BASICS TAB */}
-            {mainStep === 'basics' && (
-              <>
-                {/* Sub Tabs */}
-                <div className="flex gap-4 mb-8 border-b border-gray-200 pb-4">
-                  {[
-                    { id: 'language', label: 'Ngôn ngữ', number: 1 },
-                    { id: 'level', label: 'Trình Độ', number: 2 },
-                    { id: 'goal', label: 'Mục tiêu', number: 3 },
-                  ].map((subtab) => (
-                    <button
-                      key={subtab.id}
-                      onClick={() => setBasicSubStep(subtab.id as any)}
-                      className={`flex items-center gap-2 font-medium transition-all pb-2 border-b-2 ${
-                        basicSubStep === subtab.id
-                          ? 'border-indigo-600 text-indigo-600'
-                          : 'border-transparent text-gray-600 hover:text-gray-800'
-                      }`}
-                    >
-                      <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          basicSubStep === subtab.id
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-gray-200 text-gray-600'
-                        }`}
-                      >
-                        {subtab.number}
-                      </div>
-                      {subtab.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Sub Step Content */}
-                <div className="min-h-96">
-                  {basicSubStep === 'language' && (
-                    <Step1Language
-                      selected={formData.targetLanguage}
-                      onSelect={(value) => setFormData({ ...formData, targetLanguage: value })}
-                    />
-                  )}
-
-                  {basicSubStep === 'level' && (
-                    <Step2Level
-                      selected={formData.currentLevel}
-                      onSelect={(value) => setFormData({ ...formData, currentLevel: value })}
-                    />
-                  )}
-
-                  {basicSubStep === 'goal' && (
-                    <Step3Goal
-                      selected={formData.studyGoal}
-                      customGoal={customGoal}
-                      onSelect={handleGoalSelect}
-                      onCustomChange={setCustomGoal}
-                      showCustomInput={showCustomGoal}
-                    />
-                  )}
-                </div>
-
-                {/* Footer Buttons */}
-                <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between bg-gray-50 -mx-6 -mb-6 px-6 py-6">
-                  <button
-                    onClick={handleBackBasic}
-                    className="px-6 py-3 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    Quay lại
-                  </button>
-
-                  <button
-                    onClick={handleNextBasic}
-                    className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors"
-                  >
-                    Tiếp tục
-                  </button>
-                </div>
-              </>
-            )}
-
-            {/* OPTIONS TAB */}
-            {mainStep === 'options' && (
-              <>
-                <Step4Time
-                  selected={formData.hoursPerWeek}
-                  onSelect={(value) => setFormData({ ...formData, hoursPerWeek: value })}
-                />
-
-                {/* Footer Buttons */}
-                <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-between bg-gray-50 -mx-6 -mb-6 px-6 py-6">
-                  <button
-                    onClick={handleBackToBasics}
-                    className="px-6 py-3 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    Quay lại
-                  </button>
-
-                  {!canGenerate ? (
-                    <button
-                      disabled
-                      className="px-8 py-3 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed flex items-center gap-2"
-                    >
-                      <AlertCircle className="w-5 h-5" />
-                      Hết token
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleNextOptions}
-                      className="px-8 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
-                    >
-                      <Zap className="w-5 h-5" />
-                      Tạo Lộ trình của Tôi
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* GENERATING TAB */}
-            {mainStep === 'generating' && (
-              <div className="flex flex-col items-center justify-center py-20">
-                {generateMutation.isPending ? (
-                  <>
-                    <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-6 animate-pulse">
-                      <Bot className="w-8 h-8 text-indigo-600" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">Đang tạo lộ trình...</h3>
-                    <p className="text-gray-600">AI đang phân tích yêu cầu của bạn</p>
-                    <div className="mt-6 flex gap-2">
-                      <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" />
-                      <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                      <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-6">
-                      <Check className="w-10 h-10 text-green-600" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-2">Tạo lộ trình thành công!</h3>
-                    <p className="text-gray-600 mb-8 text-center max-w-md">
-                      Lộ trình học tập của bạn đã được tạo. Hãy bắt đầu học thôi!
-                    </p>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => navigate('/')}
-                        className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
-                      >
-                        Về trang chủ
-                      </button>
-                      <button
-                        onClick={handleReset}
-                        className="px-6 py-3 border border-indigo-200 text-indigo-600 font-semibold rounded-lg hover:bg-indigo-50 transition-colors"
-                      >
-                        Tạo lộ trình mới
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Token Warning */}
-        {!canGenerate && mainStep === 'options' && (
-          <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-semibold text-red-900">Bạn đã hết Token</h4>
-              <p className="text-sm text-red-800 mt-1">
-                Bạn cần mua thêm token để tiếp tục tạo lộ trình. Vui lòng nâng cấp gói premium của bạn.
-              </p>
-              <button
-                onClick={() => navigate('/')}
-                className="mt-3 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Nâng cấp ngay
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </Layout>
-  )
-}
-
-function Step2Level({
-  selected,
-  onSelect
-}: {
-  selected: string | null
-  onSelect: (value: string) => void
-}) {
-  return (
-    <div>
-      <h3 className="text-xl font-bold text-gray-800 mb-6">Trình độ hiện tại của bạn</h3>
-      <div className="space-y-3">
-        {LEVELS.map((level) => (
-          <button
-            key={level.id}
-            onClick={() => onSelect(level.id)}
-            className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
-              selected === level.id
-                ? 'border-indigo-600 bg-indigo-50'
-                : 'border-gray-200 bg-white hover:border-indigo-300'
-            }`}
-          >
-            <h4 className={`font-semibold ${selected === level.id ? 'text-indigo-600' : 'text-gray-800'}`}>
-              {level.label}
-            </h4>
-            <p className="text-sm text-gray-600 mt-1">{level.desc}</p>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function Step3Goal({
-  selected,
-  customGoal,
-  onSelect,
-  onCustomChange,
-  showCustomInput
-}: {
-  selected: string | null
-  customGoal: string
-  onSelect: (value: string) => void
-  onCustomChange: (value: string) => void
-  showCustomInput: boolean
-}) {
-  return (
-    <div>
-      <h3 className="text-xl font-bold text-gray-800 mb-6">Mục tiêu của bạn là gì?</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {GOALS.map((goal) => (
-          <button
-            key={goal.id}
-            onClick={() => onSelect(goal.id)}
-            className={`p-4 rounded-lg border-2 text-left transition-all ${
-              selected === goal.id
-                ? 'border-indigo-600 bg-indigo-50'
-                : 'border-gray-200 bg-white hover:border-indigo-300'
-            }`}
-          >
-            <div className="text-2xl mb-2">{goal.icon}</div>
-            <h4 className={`font-semibold ${selected === goal.id ? 'text-indigo-600' : 'text-gray-800'}`}>
-              {goal.label}
-            </h4>
-            <p className="text-sm text-gray-600 mt-1">{goal.desc}</p>
-          </button>
-        ))}
-      </div>
-
-      {showCustomInput && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Nhập mục tiêu tùy chỉnh</label>
-          <textarea
-            value={customGoal}
-            onChange={(e) => onCustomChange(e.target.value)}
-            placeholder="Mô tả chi tiết mục tiêu học tập của bạn..."
-            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-            rows={4}
-          />
-        </div>
-      )}
-    </div>
-  )
-}
-
-function Step4Time({
-  selected,
-  onSelect
-}: {
-  selected: string | null
-  onSelect: (value: string) => void
-}) {
-  return (
-    <div>
-      <h3 className="text-xl font-bold text-gray-800 mb-2">Bạn có thể học bao nhiêu giờ mỗi tuần?</h3>
-      <p className="text-gray-600 mb-6">Thời gian học ưa thích</p>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
-        {HOURS_PER_WEEK.map((time) => (
-          <button
-            key={time.id}
-            onClick={() => onSelect(time.id)}
-            className={`p-4 rounded-lg border-2 font-medium transition-all text-left ${
-              selected === time.id
-                ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300'
-            }`}
-          >
-            ⏰ {time.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-900 mb-2">💡 Lịch hoạt động (Bắt kỳ lúc nào)</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {[
-            { time: 'Sáng (6AM - 12PM)', selected: true },
-            { time: 'Chiều (12PM - 5PM)', selected: false },
-            { time: 'Tối (5PM - 9PM)', selected: false },
-            { time: 'Đêm (9PM - 12AM)', selected: false },
-          ].map((slot) => (
-            <button
-              key={slot.time}
-              className={`p-3 rounded-lg text-sm font-medium transition-all ${
-                slot.selected
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-blue-200 text-gray-700'
-              }`}
-            >
-              {slot.time}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ============ MAIN COMPONENT ============
 
@@ -993,73 +498,122 @@ export default function AiTutor() {
 
         {/* Main Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          {/* Progress */}
-          <div className="px-6 md:px-8 pt-8 pb-6">
-            <div className="flex items-center justify-between mb-6">
-              {['Ngôn ngữ', 'Trình độ', 'Mục tiêu', 'Thời gian'].map((label, idx) => (
-                <div key={label} className="flex items-center flex-1">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                      idx < stepIndex
-                        ? 'bg-green-500 text-white'
-                        : idx === stepIndex
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}
-                  >
-                    {idx < stepIndex ? <Check className="w-6 h-6" /> : idx + 1}
-                  </div>
-                  <div
-                    className={`h-1 flex-1 mx-2 rounded-full ${
-                      idx < stepIndex ? 'bg-green-500' : 'bg-gray-200'
-                    }`}
-                  />
-                </div>
-              ))}
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                  stepIndex > 3 ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
-                }`}
-              >
-                {stepIndex > 3 ? <Check className="w-6 h-6" /> : '5'}
+          {/* Tabs Header */}
+          <div className="flex border-b border-gray-200 px-6 md:px-8">
+            {['Cơ bản', 'Tùy chọn', 'Tạo lộ trình'].map((tab, idx) => {
+              let isActive = false
+              if (idx === 0) isActive = ['language', 'level', 'goal'].includes(currentStep)
+              if (idx === 1) isActive = currentStep === 'time'
+              if (idx === 2) isActive = ['generating', 'success'].includes(currentStep)
+
+              return (
+                <button
+                  key={tab}
+                  className={`flex-1 py-4 font-medium transition-all border-b-2 text-center ${
+                    isActive
+                      ? 'border-b-2 border-indigo-600 text-indigo-600'
+                      : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Progress Indicator */}
+          <div className="px-6 md:px-8 pt-6 pb-2 flex justify-center">
+            {['language', 'level', 'goal'].includes(currentStep) && (
+              <div className="flex items-center gap-4 mb-6 mx-auto">
+                {['Ngôn ngữ', 'Trình độ', 'Mục tiêu'].map((label, idx) => {
+                  const basicSteps = ['language', 'level', 'goal']
+                  const basicStepIndex = basicSteps.indexOf(currentStep)
+                  const isCompleted = idx < basicStepIndex
+                  const isCurrent = idx === basicStepIndex
+
+                  return (
+                    <div key={label} className="flex flex-col items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0 ${
+                            isCompleted
+                              ? 'bg-green-500 text-white'
+                              : isCurrent
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-gray-200 text-gray-600'
+                          }`}
+                        >
+                          {isCompleted ? <Check className="w-6 h-6" /> : idx + 1}
+                        </div>
+                        {idx < 2 && (
+                          <div
+                            className={`w-8 h-1 rounded-full ${
+                              isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                            }`}
+                          />
+                        )}
+                      </div>
+                      <span
+                        className={`text-xs font-medium ${
+                          isCurrent
+                            ? 'text-indigo-600'
+                            : isCompleted
+                            ? 'text-green-500'
+                            : 'text-gray-400'
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
+            )}
+          </div>
 
             {/* Step Content */}
-            <div className="min-h-96">
+            <div className="min-h-96 px-0 md:px-0">
               {currentStep === 'language' && (
-                <Step1Language
-                  selected={formData.targetLanguage}
-                  onSelect={(value) => setFormData({ ...formData, targetLanguage: value })}
-                />
+                <div className="p-6 md:p-8">
+                  <Step1Language
+                    selected={formData.targetLanguage}
+                    onSelect={(value) => setFormData({ ...formData, targetLanguage: value })}
+                  />
+                </div>
               )}
 
               {currentStep === 'level' && (
-                <Step2Level
-                  selected={formData.currentLevel}
-                  onSelect={(value) => setFormData({ ...formData, currentLevel: value })}
-                />
+                <div className="p-6 md:p-8">
+                  <Step2Level
+                    selected={formData.currentLevel}
+                    onSelect={(value) => setFormData({ ...formData, currentLevel: value })}
+                  />
+                </div>
               )}
 
               {currentStep === 'goal' && (
-                <Step3Goal
-                  selected={formData.studyGoal}
-                  customGoal={customGoal}
-                  onSelect={handleGoalSelect}
-                  onCustomChange={setCustomGoal}
-                  showCustomInput={showCustomGoal}
-                />
+                <div className="p-6 md:p-8">
+                  <Step3Goal
+                    selected={formData.studyGoal}
+                    customGoal={customGoal}
+                    onSelect={handleGoalSelect}
+                    onCustomChange={setCustomGoal}
+                    showCustomInput={showCustomGoal}
+                  />
+                </div>
               )}
 
               {currentStep === 'time' && (
-                <Step4Time
-                  selected={formData.hoursPerWeek}
-                  onSelect={(value) => setFormData({ ...formData, hoursPerWeek: value })}
-                />
+                <div className="p-6 md:p-8">
+                  <Step4Time
+                    selected={formData.hoursPerWeek}
+                    onSelect={(value) => setFormData({ ...formData, hoursPerWeek: value })}
+                  />
+                </div>
               )}
 
               {currentStep === 'generating' && (
-                <div className="flex flex-col items-center justify-center py-20">
+                <div className="p-6 md:p-8 flex flex-col items-center justify-center py-20">
                   <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mb-6 animate-pulse">
                     <Bot className="w-8 h-8 text-indigo-600" />
                   </div>
@@ -1074,35 +628,44 @@ export default function AiTutor() {
               )}
 
               {currentStep === 'success' && (
-                <div className="flex flex-col items-center justify-center py-20">
-                  <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-6">
-                    <Check className="w-10 h-10 text-green-600" />
+                <div className="p-6 md:p-8 flex flex-col items-center justify-center py-20">
+                  <div className="mb-6">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-2">🎉 Sản sáng tạo lộ trình của bạn!</h2>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">Tạo lộ trình thành công!</h3>
-                  <p className="text-gray-600 mb-8 text-center max-w-md">
-                    Lộ trình học tập của bạn đã được tạo. Hãy bắt đầu học thôi!
-                  </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => navigate('/')}
-                      className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
-                    >
-                      Về trang chủ
-                    </button>
-                    <button
-                      onClick={handleReset}
-                      className="px-6 py-3 border border-indigo-200 text-indigo-600 font-semibold rounded-lg hover:bg-indigo-50 transition-colors"
-                    >
-                      Tạo lộ trình mới
-                    </button>
+
+                  <div className="w-full bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <p className="text-center text-sm">
+                      <span className="font-semibold">⚡ Số dư Token của bạn:</span>{' '}
+                      <span className="text-yellow-700 font-bold">{user.aiTokens} token</span>
+                    </p>
                   </div>
+
+                  <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <p className="text-center text-sm text-blue-900">
+                      ℹ️ Nhân nút bên dưới để duyệt các lộ trình có sẵn hoặc tạo lộ trình mới được cá nhân hóa.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => navigate('/study')}
+                    className="w-full px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 mb-4"
+                  >
+                    <Zap className="w-5 h-5" />
+                    Tạo Lộ trình của Tôi
+                  </button>
+
+                  <button
+                    onClick={() => navigate('/')}
+                    className="px-6 py-3 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    Quay lại
+                  </button>
                 </div>
               )}
             </div>
-          </div>
 
           {/* Footer Buttons */}
-          {currentStep !== 'success' && (
+          {currentStep !== 'success' && currentStep !== 'generating' && (
             <div className="px-6 md:px-8 py-6 border-t border-gray-100 flex items-center justify-between bg-gray-50">
               <button
                 onClick={handleBack}
@@ -1112,36 +675,32 @@ export default function AiTutor() {
                 Quay lại
               </button>
 
-              {currentStep !== 'generating' && (
-                <>
-                  {currentStep === 'time' && !canGenerate ? (
-                    <button
-                      disabled
-                      className="px-8 py-3 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed flex items-center gap-2"
-                    >
-                      <AlertCircle className="w-5 h-5" />
-                      Hết token
-                    </button>
+              {(!canGenerate && currentStep === 'time') ? (
+                <button
+                  disabled
+                  className="px-8 py-3 bg-gray-400 text-white font-semibold rounded-lg cursor-not-allowed flex items-center gap-2"
+                >
+                  <AlertCircle className="w-5 h-5" />
+                  Hết token
+                </button>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  className={`px-8 py-3 font-semibold rounded-lg transition-colors flex items-center gap-2 ${
+                    currentStep === 'time'
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white'
+                      : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  }`}
+                >
+                  {currentStep === 'time' ? (
+                    <>
+                      <Zap className="w-5 h-5" />
+                      Tạo Lộ trình của Tôi
+                    </>
                   ) : (
-                    <button
-                      onClick={handleNext}
-                      className={`px-8 py-3 font-semibold rounded-lg transition-colors flex items-center gap-2 ${
-                        currentStep === 'time'
-                          ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white'
-                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                      }`}
-                    >
-                      {currentStep === 'time' ? (
-                        <>
-                          <Zap className="w-5 h-5" />
-                          Tạo Lộ trình của Tôi
-                        </>
-                      ) : (
-                        'Tiếp tục'
-                      )}
-                    </button>
+                    'Tiếp tục'
                   )}
-                </>
+                </button>
               )}
             </div>
           )}
