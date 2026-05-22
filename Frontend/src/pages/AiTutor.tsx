@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { Layout } from '@/components/Layout'
-import { Bot, ArrowLeft, Check, X, Zap, AlertCircle, Search, Globe, Code2, Smartphone, Database, Cloud, Server, Package } from 'lucide-react'
+import { Bot, ArrowLeft, Check, X, Zap, AlertCircle, Search, Globe, Code2, Smartphone, Database, Cloud, Server, Package, Sun, Coffee, Moon, Star } from 'lucide-react'
 import { axiosClient } from '@/config/axiosClient'
 
 // ============ TYPES ============
@@ -116,7 +116,7 @@ const GOALS = [
 ]
 
 const HOURS_PER_WEEK = [
-  { id: '3', label: '3 giờ/tuần (Thỏai mái)' },
+  { id: '3', label: '3 giờ/tuần (Thoải mái)' },
   { id: '5', label: '5 giờ/tuần (Bản thông gian)' },
   { id: '10', label: '10 giờ/tuần (Thường xuyên)' },
   { id: '15', label: '15 giờ/tuần (Chuyên cần)' },
@@ -154,7 +154,7 @@ function Step1Language({
         <Search className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
         <input
           type="text"
-          placeholder="Tìm kiếm ngôn ngữ, framework, công cụ..."
+          placeholder="Search languages, frameworks, tools..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
@@ -162,23 +162,22 @@ function Step1Language({
       </div>
 
       {/* Category Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+      <div className="flex justify-between w-full mb-6 overflow-x-auto pb-0 border-b border-gray-100 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {categories.map((category) => {
           const info = CATEGORY_INFO[category]
-          const count = LANGUAGE_DATA.filter((l) => l.category === category).length
+          const isActive = activeCategory === category
           return (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                activeCategory === category
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              className={`flex items-center gap-1.5 px-1 md:px-2 pb-3 text-[13px] md:text-sm font-medium whitespace-nowrap transition-all border-b-2 ${
+                isActive
+                  ? 'border-orange-500 text-orange-500'
+                  : 'border-transparent text-gray-500 hover:text-gray-800'
               }`}
             >
-              <span className="text-lg">{info.icon}</span>
+              <span className="text-base">{info.icon}</span>
               {info.label}
-              <span className="text-xs opacity-75">({count})</span>
             </button>
           )
         })}
@@ -302,48 +301,97 @@ function Step4Time({
   selected: string | null
   onSelect: (value: string) => void
 }) {
+  const [preferredTimes, setPreferredTimes] = useState<Set<string>>(new Set(['morning']))
+  
+  const timeSlots = [
+    { id: 'morning', label: 'Sáng', subLabel: '6AM - 12PM', icon: Sun, color: 'text-yellow-500' },
+    { id: 'afternoon', label: 'Chiều', subLabel: '12PM - 5PM', icon: Coffee, color: 'text-orange-500' },
+    { id: 'evening', label: 'Tối', subLabel: '5PM - 9PM', icon: Moon, color: 'text-indigo-500' },
+    { id: 'night', label: 'Đêm', subLabel: '9PM - 12AM', icon: Star, color: 'text-blue-900' },
+  ]
+
+  const toggleTimeSlot = (id: string) => {
+    const newTimes = new Set(preferredTimes)
+    if (newTimes.has(id)) {
+      newTimes.delete(id)
+    } else {
+      newTimes.add(id)
+    }
+    setPreferredTimes(newTimes)
+  }
+
   return (
     <div>
-      <h3 className="text-xl font-bold text-gray-800 mb-2">Bạn có thể học bao nhiêu giờ mỗi tuần?</h3>
-      <p className="text-gray-600 mb-6">Thời gian học ưa thích</p>
+      <h3 className="text-xl font-bold text-gray-800 mb-6">Bạn có thể học bao nhiêu giờ mỗi tuần?</h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-8">
+      {/* Hours Per Week Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-10">
         {HOURS_PER_WEEK.map((time) => (
           <button
             key={time.id}
             onClick={() => onSelect(time.id)}
-            className={`p-4 rounded-lg border-2 font-medium transition-all text-left ${
+            className={`p-4 rounded-xl border-2 font-medium transition-all text-left ${
               selected === time.id
-                ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
-                : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300'
+                ? 'border-indigo-600 bg-indigo-50 text-indigo-600 shadow-md'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-indigo-300 hover:shadow-sm'
             }`}
           >
-            ⏰ {time.label}
+            <div className="flex items-center gap-3">
+              <span className="text-xl">⏰</span>
+              <div>
+                <div className="font-semibold">{time.label}</div>
+              </div>
+            </div>
           </button>
         ))}
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-900 mb-2">💡 Lịch hoạt động (Bắt kỳ lúc nào)</h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {[
-            { time: 'Sáng (6AM - 12PM)', selected: true },
-            { time: 'Chiều (12PM - 5PM)', selected: false },
-            { time: 'Tối (5PM - 9PM)', selected: false },
-            { time: 'Đêm (9PM - 12AM)', selected: false },
-          ].map((slot) => (
-            <button
-              key={slot.time}
-              className={`p-3 rounded-lg text-sm font-medium transition-all ${
-                slot.selected
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-blue-200 text-gray-700'
-              }`}
-            >
-              {slot.time}
-            </button>
-          ))}
+      {/* Preferred Time Slots */}
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+        <h4 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Star className="w-5 h-5 text-indigo-600" />
+          Thời gian học ưa thích
+        </h4>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {timeSlots.map((slot) => {
+            const Icon = slot.icon
+            const isSelected = preferredTimes.has(slot.id)
+            
+            return (
+              <button
+                key={slot.id}
+                onClick={() => toggleTimeSlot(slot.id)}
+                className={`p-4 rounded-lg transition-all duration-200 text-center group ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white shadow-md scale-105'
+                    : 'bg-white border-2 border-blue-200 text-gray-700 hover:border-indigo-400 hover:shadow-sm'
+                }`}
+              >
+                <Icon className={`w-6 h-6 mx-auto mb-2 transition-transform group-hover:scale-110 ${
+                  isSelected ? 'text-white' : slot.color
+                }`} />
+                <div className={`text-sm font-semibold ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+                  {slot.label}
+                </div>
+                <div className={`text-xs ${isSelected ? 'text-indigo-100' : 'text-gray-600'}`}>
+                  {slot.subLabel}
+                </div>
+              </button>
+            )
+          })}
         </div>
+
+        {preferredTimes.size > 0 && (
+          <div className="mt-4 pt-4 border-t border-blue-200">
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold text-indigo-600">✓ Bạn đã chọn:</span>{' '}
+              {Array.from(preferredTimes)
+                .map(id => timeSlots.find(s => s.id === id)?.label)
+                .join(', ')}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -522,53 +570,57 @@ export default function AiTutor() {
           </div>
 
           {/* Progress Indicator */}
-          <div className="px-6 md:px-8 pt-6 pb-2 flex justify-center">
-            {['language', 'level', 'goal'].includes(currentStep) && (
-              <div className="flex items-center gap-4 mb-6 mx-auto">
-                {['Ngôn ngữ', 'Trình độ', 'Mục tiêu'].map((label, idx) => {
-                  const basicSteps = ['language', 'level', 'goal']
-                  const basicStepIndex = basicSteps.indexOf(currentStep)
-                  const isCompleted = idx < basicStepIndex
-                  const isCurrent = idx === basicStepIndex
+          <div className="px-6 md:px-8 pt-6 pb-2 flex justify-center w-full">
+            {['language', 'level', 'goal'].includes(currentStep) && (() => {
+              const basicSteps = ['language', 'level', 'goal'];
+              const basicStepIndex = basicSteps.indexOf(currentStep);
+              
+              return (
+                <div className="flex justify-between items-start mb-6 mx-auto w-full max-w-sm relative">
+                  {/* Đường line mờ phía sau */}
+                  <div className="absolute top-5 left-8 right-8 h-[2px] bg-gray-200 z-0">
+                    <div 
+                      className="h-full bg-green-500 transition-all duration-300"
+                      style={{ 
+                        width: basicStepIndex === 0 ? '0%' : basicStepIndex === 1 ? '50%' : '100%' 
+                      }}
+                    />
+                  </div>
+                  
+                  {['Ngôn ngữ', 'Trình độ', 'Mục tiêu'].map((label, idx) => {
+                    const isCompleted = idx < basicStepIndex;
+                    const isCurrent = idx === basicStepIndex;
 
-                  return (
-                    <div key={label} className="flex flex-col items-center gap-2">
-                      <div className="flex items-center gap-2">
+                    return (
+                      <div key={label} className="flex flex-col items-center relative z-10 w-20">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0 ${
+                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold flex-shrink-0 mb-2 transition-all ${
                             isCompleted
                               ? 'bg-green-500 text-white'
                               : isCurrent
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-gray-200 text-gray-600'
+                              ? 'bg-indigo-600 text-white ring-4 ring-indigo-50'
+                              : 'bg-gray-100 text-gray-400'
                           }`}
                         >
-                          {isCompleted ? <Check className="w-6 h-6" /> : idx + 1}
+                          {isCompleted ? <Check className="w-5 h-5" /> : idx + 1}
                         </div>
-                        {idx < 2 && (
-                          <div
-                            className={`w-8 h-1 rounded-full ${
-                              isCompleted ? 'bg-green-500' : 'bg-gray-200'
-                            }`}
-                          />
-                        )}
+                        <span
+                          className={`text-sm font-medium text-center whitespace-nowrap ${
+                            isCurrent
+                              ? 'text-indigo-600'
+                              : isCompleted
+                              ? 'text-green-500'
+                              : 'text-gray-400'
+                          }`}
+                        >
+                          {label}
+                        </span>
                       </div>
-                      <span
-                        className={`text-xs font-medium ${
-                          isCurrent
-                            ? 'text-indigo-600'
-                            : isCompleted
-                            ? 'text-green-500'
-                            : 'text-gray-400'
-                        }`}
-                      >
-                        {label}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
             {/* Step Content */}
