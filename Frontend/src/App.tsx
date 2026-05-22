@@ -9,6 +9,7 @@ import LessonDetail from '@/pages/LessonDetail'
 import AiTutor from '@/pages/AiTutor'
 import Interview from '@/pages/Interview'
 import Study from '@/pages/Study'
+import StudySession from '@/pages/StudySession'
 import { useAuthStore } from '@/store/authStore'
 import { ArrowRight } from 'lucide-react'
 
@@ -111,6 +112,7 @@ function App() {
         <Route path="/ai-tutor" element={<AiTutor />} />
         <Route path="/interview" element={<Interview />} />
         <Route path="/study" element={<Study />} />
+        <Route path="/study-session/:sessionId" element={<StudySession />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
