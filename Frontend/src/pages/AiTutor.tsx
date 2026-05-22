@@ -433,8 +433,7 @@ export default function AiTutor() {
     },
     onSuccess: (data) => {
       setCurrentStep('success')
-      // Update user tokens in store
-      useAuthStore.getState().updateTokens(user!.aiTokens - 1)
+      useAuthStore.getState().updateTokens(data.aiTokens)
       queryClient.invalidateQueries({ queryKey: ['user'] })
     },
     onError: (error: any) => {
@@ -694,7 +693,7 @@ export default function AiTutor() {
 
                   <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                     <p className="text-center text-sm text-blue-900">
-                      ℹ️ Nhân nút bên dưới để duyệt các lộ trình có sẵn hoặc tạo lộ trình mới được cá nhân hóa.
+                      ℹ️ Lộ trình của bạn đã sẵn sàng! Nhấn nút dưới để bắt đầu học tập.
                     </p>
                   </div>
 
@@ -703,7 +702,7 @@ export default function AiTutor() {
                     className="w-full px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 mb-4"
                   >
                     <Zap className="w-5 h-5" />
-                    Tạo Lộ trình của Tôi
+                    Xem Lộ trình của Tôi
                   </button>
 
                   <button
