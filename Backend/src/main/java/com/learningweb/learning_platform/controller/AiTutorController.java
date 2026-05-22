@@ -27,7 +27,6 @@ public class AiTutorController {
     public ResponseEntity<?> generatePath(@RequestBody LearningPathRequest request) {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        Optional<AiLearning> existingPath = pathRepository.findByUser(currentUser);
         if (currentUser.getAiTokens() <= 0) {
             return ResponseEntity.badRequest().body("Bạn đã hết lượt tạo lộ trình. Hãy thanh toán để nhận thêm lượt!");
         }
@@ -40,15 +39,29 @@ public class AiTutorController {
         currentUser.setAiTokens(currentUser.getAiTokens() - 1);
         userRepository.save(currentUser);
 
-        // Lưu vào Database để lần sau xem lại
-        AiLearning newPath = AiLearning.builder()
-                .user(currentUser)
-                .targetLanguage(request.getTargetLanguage())
-                .currentLevel(request.getCurrentLevel())
-                .studyGoal(request.getStudyGoal())
-                .hoursPerWeek(request.getHoursPerWeek())
-                .generatedRoadmap(roadmap)
-                .build();
+        // Kiểm tra nếu user đã có learning path → UPDATE, không thì INSERT
+        Optional<AiLearning> existingPath = pathRepository.findByUser(currentUser);
+        
+        AiLearning newPath;
+        if (existingPath.isPresent()) {
+            // UPDATE existing path
+            newPath = existingPath.get();
+            newPath.setTargetLanguage(request.getTargetLanguage());
+            newPath.setCurrentLevel(request.getCurrentLevel());
+            newPath.setStudyGoal(request.getStudyGoal());
+            newPath.setHoursPerWeek(request.getHoursPerWeek());
+            newPath.setGeneratedRoadmap(roadmap);
+        } else {
+            // CREATE new path
+            newPath = AiLearning.builder()
+                    .user(currentUser)
+                    .targetLanguage(request.getTargetLanguage())
+                    .currentLevel(request.getCurrentLevel())
+                    .studyGoal(request.getStudyGoal())
+                    .hoursPerWeek(request.getHoursPerWeek())
+                    .generatedRoadmap(roadmap)
+                    .build();
+        }
 
         pathRepository.save(newPath);
         
