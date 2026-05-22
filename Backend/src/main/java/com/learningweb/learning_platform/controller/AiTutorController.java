@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai-tutor")
@@ -50,7 +51,12 @@ public class AiTutorController {
                 .build();
 
         pathRepository.save(newPath);
-        return ResponseEntity.ok(newPath);
+        
+        // Trả về cả lộ trình và token mới để Frontend update
+        return ResponseEntity.ok(Map.of(
+            "path", newPath,
+            "aiTokens", currentUser.getAiTokens()
+        ));
     }
 
     @GetMapping("/my-path")
