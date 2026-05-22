@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { Layout } from '@/components/Layout'
-import { Bot, ArrowLeft, Check, X, Zap, AlertCircle, Search, Globe, Code2, Smartphone, Database, Cloud, Server, Package, Sun, Coffee, Moon, Star } from 'lucide-react'
+import { Bot, ArrowLeft, Check, X, Zap, AlertCircle, Search, Globe, Code2, Smartphone, Database, Cloud, Server, Package, Sun, Coffee, Moon, Star, Download, Eye } from 'lucide-react'
 import { axiosClient } from '@/config/axiosClient'
 
 // ============ TYPES ============
@@ -418,6 +418,7 @@ export default function AiTutor() {
   })
 
   const [customGoal, setCustomGoal] = useState('')
+  const [generatedRoadmap, setGeneratedRoadmap] = useState<string>('')
 
   useEffect(() => {
     if (!token || !user) {
@@ -433,6 +434,7 @@ export default function AiTutor() {
     },
     onSuccess: (data) => {
       setCurrentStep('success')
+      setGeneratedRoadmap(data.path?.generatedRoadmap || '')
       useAuthStore.getState().updateTokens(data.aiTokens)
       queryClient.invalidateQueries({ queryKey: ['user'] })
     },
@@ -501,6 +503,25 @@ export default function AiTutor() {
     })
     setCustomGoal('')
     setShowCustomGoal(false)
+    setGeneratedRoadmap('')
+  }
+
+  const downloadRoadmap = () => {
+    if (!generatedRoadmap) return
+    
+    const element = document.createElement('a')
+    const file = new Blob([generatedRoadmap], { type: 'text/plain' })
+    element.href = URL.createObjectURL(file)
+    element.download = `${formData.targetLanguage}-roadmap-${new Date().toISOString().split('T')[0]}.txt`
+    document.body.appendChild(element)
+    element.click()
+    document.body.removeChild(element)
+  }
+
+  const getPreview = () => {
+    if (!generatedRoadmap) return ''
+    const lines = generatedRoadmap.split('\n')
+    return lines.slice(0, 20).join('\n')
   }
 
   if (!token || !user) {
@@ -691,23 +712,43 @@ export default function AiTutor() {
                     </p>
                   </div>
 
-                  <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                    <p className="text-center text-sm text-blue-900">
-                      ℹ️ Lộ trình của bạn đã sẵn sàng! Nhấn nút dưới để bắt đầu học tập.
+                  {/* Preview Box */}
+                  <div className="w-full bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl p-6 mb-6 max-h-96 overflow-y-auto">
+                    <h4 className="font-bold text-gray-800 mb-4 text-lg">📋 Xem trước lộ trình</h4>
+                    <div className="bg-white rounded-lg p-4 text-sm text-gray-700 font-mono whitespace-pre-wrap break-words leading-relaxed">
+                      {getPreview() || 'Lộ trình đang được xử lý...'}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-3 text-center italic">
+                      (Đây là {Math.ceil(getPreview().split('\n').length / generatedRoadmap.split('\n').length * 100)}% của lộ trình)
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => navigate('/study')}
-                    className="w-full px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 mb-4"
-                  >
-                    <Zap className="w-5 h-5" />
-                    Xem Lộ trình của Tôi
-                  </button>
+                  <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <p className="text-center text-sm text-blue-900">
+                      ℹ️ Lộ trình của bạn đã sẵn sàng! Tải xuống đầy đủ hoặc xem chi tiết.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3 w-full">
+                    <button
+                      onClick={downloadRoadmap}
+                      className="flex-1 px-8 py-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-5 h-5" />
+                      Tải xuống
+                    </button>
+                    <button
+                      onClick={() => navigate('/study')}
+                      className="flex-1 px-8 py-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Eye className="w-5 h-5" />
+                      Xem đầy đủ
+                    </button>
+                  </div>
 
                   <button
                     onClick={() => navigate('/')}
-                    className="px-6 py-3 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
+                    className="w-full mt-3 px-6 py-3 border border-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-100 transition-colors"
                   >
                     Quay lại
                   </button>
