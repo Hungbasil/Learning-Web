@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Layout } from '@/components/Layout'
-import { ArrowLeft, Send, Plus, Edit2, Trash2, CheckCircle2, Circle, Play, Pause, RotateCcw, Music } from 'lucide-react'
-import axiosClient from '@/config/axiosClient'
+import { ArrowLeft, Send, Plus, Edit2, Trash2, CheckCircle2, Circle, Play, Pause, RotateCcw, Music, Settings, X, SkipBack, SkipForward, Volume2 } from 'lucide-react'
+import { axiosClient } from '@/config/axiosClient'
 
 
 interface TodoItem {
@@ -57,11 +57,22 @@ export default function StudySession() {
   const [musicTracks, setMusicTracks] = useState<MusicTrack[]>([])
   const [selectedMusic, setSelectedMusic] = useState<string | null>(null)
   
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: '1', user: 'Cấu Bé Tớ Mộ', text: 'Mọi người ơi, mình đang tìm hiểu về das. Có ai biết k?', timestamp: '4 giờ trước' }
-  ])
+  // Music player state
+  const [volume, setVolume] = useState(50)
+  const [showMusicSettings, setShowMusicSettings] = useState(false)
+  const [shuffleMode, setShuffleMode] = useState(false)
+  const [autoPlay, setAutoPlay] = useState(false)
+  const [musicProgress, setMusicProgress] = useState(50)
+  
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    const saved = localStorage.getItem(`chat_${sessionId}`)
+    return saved ? JSON.parse(saved) : [{ id: '1', user: 'BOT', text: 'Trò chuyện ở đây', timestamp: '.' }]
+  })
   const [newMessage, setNewMessage] = useState('')
-  const [pomodorosCount, setPomodorosCount] = useState(0)
+  const [pomodorosCount, setPomodorosCount] = useState(() => {
+    const saved = localStorage.getItem(`pomodoros_${sessionId}`)
+    return saved ? parseInt(saved) : 0
+  })
 
   // Check authentication
   useEffect(() => {
@@ -77,7 +88,7 @@ export default function StudySession() {
     const loadSessionData = async () => {
       try {
         setLoading(true)
-        const response = await axiosClient.get(`/api/sessions/${sessionId}`)
+        const response = await axiosClient.get(`/sessions/${sessionId}`)
         const data = response.data
         
         setSession(data.session)
@@ -101,7 +112,7 @@ export default function StudySession() {
   useEffect(() => {
     const loadMusicTracks = async () => {
       try {
-        const response = await axiosClient.get('/api/music')
+        const response = await axiosClient.get('/music')
         setMusicTracks(response.data || [])
       } catch (error) {
         console.error('Error loading music:', error)
@@ -110,6 +121,16 @@ export default function StudySession() {
 
     loadMusicTracks()
   }, [token])
+
+  // Save pomodoros to localStorage
+  useEffect(() => {
+    localStorage.setItem(`pomodoros_${sessionId}`, pomodorosCount.toString())
+  }, [pomodorosCount, sessionId])
+
+  // Save messages to localStorage
+  useEffect(() => {
+    localStorage.setItem(`chat_${sessionId}`, JSON.stringify(messages))
+  }, [messages, sessionId])
 
   // Pomodoro timer
   useEffect(() => {
@@ -148,7 +169,7 @@ export default function StudySession() {
     if (!newTodo.trim() || !session) return
     
     try {
-      const response = await axiosClient.post(`/api/sessions/${session.id}/todos`, {
+      const response = await axiosClient.post(`/sessions/${session.id}/todos`, {
         text: newTodo
       })
       setTodos([...todos, response.data])
@@ -164,7 +185,7 @@ export default function StudySession() {
       const todo = todos.find(t => t.id === id)
       if (!todo) return
 
-      const response = await axiosClient.put(`/api/sessions/${session.id}/todos/${id}`, {
+      const response = await axiosClient.put(`/sessions/${session.id}/todos/${id}`, {
         completed: !todo.completed
       })
       
@@ -176,7 +197,7 @@ export default function StudySession() {
 
   const deleteTodo = async (id: number) => {
     try {
-      await axiosClient.delete(`/api/sessions/${session.id}/todos/${id}`)
+      await axiosClient.delete(`/sessions/${session.id}/todos/${id}`)
       setTodos(todos.filter((t) => t.id !== id))
     } catch (error) {
       console.error('Error deleting todo:', error)
@@ -189,7 +210,7 @@ export default function StudySession() {
     if (!noteContent.trim() || !session) return
     
     try {
-      const response = await axiosClient.post(`/api/sessions/${session.id}/notes`, {
+      const response = await axiosClient.post(`/sessions/${session.id}/notes`, {
         content: noteContent
       })
       setNotes([...notes, response.data])
@@ -206,7 +227,7 @@ export default function StudySession() {
     if (!session) return
     
     try {
-      await axiosClient.put(`/api/sessions/${session.id}/music`, {
+      await axiosClient.put(`/sessions/${session.id}/music`, {
         backgroundMusic: musicId || 'none'
       })
       setSelectedMusic(musicId)
@@ -507,58 +528,157 @@ export default function StudySession() {
             </div>
 
             {/* Nhạc học tập */}
-            <div className="bg-white rounded-2xl border-2 border-gray-200 p-4">
-              <div className="flex items-center justify-between mb-4">
+            <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-orange-50 to-amber-50">
                 <h3 className="font-bold text-gray-800 flex items-center gap-2">
                   <Music className="w-5 h-5 text-orange-500" />
                   Nhạc học tập
                 </h3>
+                <button
+                  onClick={() => setShowMusicSettings(!showMusicSettings)}
+                  className="p-2 hover:bg-gray-200 rounded-lg transition"
+                >
+                  <Settings className="w-5 h-5 text-gray-600" />
+                </button>
               </div>
 
-              {selectedMusicTrack && (
-                <>
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 mb-4">
-                    <p className="text-sm font-semibold text-gray-800 mb-2">
-                      🎵 {selectedMusicTrack.title} - {selectedMusicTrack.artist}
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setIsPlayingMusic(!isPlayingMusic)}
-                        className={`flex-1 px-3 py-2 rounded-lg font-semibold text-sm transition ${
-                          isPlayingMusic
-                            ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
-                        }`}
-                      >
-                        {isPlayingMusic ? '⏸️ Dừng' : '▶️ Phát'}
-                      </button>
+              {/* Music Settings Modal */}
+              {showMusicSettings && (
+                <div className="p-4 border-b border-gray-200 bg-gray-50 space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-gray-700">Cài đặt nhạc trung tâm</p>
+                    <select
+                      value={selectedMusic || ''}
+                      onChange={(e) => updateBackgroundMusic(e.target.value || null)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+                    >
+                      <option value="">Không có nhạc</option>
+                      {musicTracks.map((track) => (
+                        <option key={track.id} value={track.id.toString()}>
+                          {track.title} - {track.artist} ({track.category})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">Phát ngầu nhiên</span>
                       <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        defaultValue="50"
-                        className="flex-1"
+                        type="checkbox"
+                        checked={shuffleMode}
+                        onChange={(e) => setShuffleMode(e.target.checked)}
+                        className="w-4 h-4"
                       />
                     </div>
                   </div>
-                </>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">Tự động chuyên bài</span>
+                      <input
+                        type="checkbox"
+                        checked={autoPlay}
+                        onChange={(e) => setAutoPlay(e.target.checked)}
+                        className="w-4 h-4"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-gray-700">Âm lượng</span>
+                      <span className="text-sm font-bold text-orange-600">{volume}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={volume}
+                      onChange={(e) => setVolume(parseInt(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
               )}
 
-              <div className="space-y-2">
-                <p className="text-xs text-gray-600 font-semibold">Chọn nhạc:</p>
-                <select
-                  value={selectedMusic || ''}
-                  onChange={(e) => updateBackgroundMusic(e.target.value || null)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-                >
-                  <option value="">Không có nhạc</option>
-                  {musicTracks.map((track) => (
-                    <option key={track.id} value={track.id.toString()}>
-                      {track.title} - {track.artist} ({track.category})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Now Playing */}
+              {selectedMusicTrack && (
+                <div className="p-4 space-y-3">
+                  <div className="bg-gradient-to-r from-orange-100 to-amber-100 rounded-lg p-3">
+                    <p className="text-xs text-gray-600 mb-1">Đang phát</p>
+                    <p className="font-bold text-gray-800 text-sm">{selectedMusicTrack.title}</p>
+                    <p className="text-xs text-gray-600">{selectedMusicTrack.artist}</p>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={musicProgress}
+                      onChange={(e) => setMusicProgress(parseInt(e.target.value))}
+                      className="w-full cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-gray-500">
+                      <span>{Math.floor(musicProgress * 0.6)}s</span>
+                      <span>3:40</span>
+                    </div>
+                  </div>
+
+                  {/* Player Controls */}
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => {}}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition"
+                    >
+                      <SkipBack className="w-5 h-5 text-gray-600" />
+                    </button>
+
+                    <button
+                      onClick={() => setIsPlayingMusic(!isPlayingMusic)}
+                      className={`p-3 rounded-lg transition ${
+                        isPlayingMusic
+                          ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                          : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                      }`}
+                    >
+                      {isPlayingMusic ? (
+                        <Pause className="w-5 h-5" />
+                      ) : (
+                        <Play className="w-5 h-5" />
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => {}}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition"
+                    >
+                      <SkipForward className="w-5 h-5 text-gray-600" />
+                    </button>
+
+                    <div className="ml-auto flex items-center gap-1">
+                      <Volume2 className="w-4 h-4 text-gray-600" />
+                      <span className="text-xs font-bold text-orange-600 w-8">{volume}%</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!selectedMusicTrack && (
+                <div className="p-6 text-center">
+                  <Music className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">Chưa chọn nhạc</p>
+                  <button
+                    onClick={() => setShowMusicSettings(true)}
+                    className="mt-3 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm rounded-lg transition"
+                  >
+                    Chọn nhạc
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
