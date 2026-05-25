@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Layout } from '@/components/Layout'
-import { ArrowLeft, Send, Plus, Edit2, Trash2, CheckCircle2, Circle, Play, Pause, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Send, Plus, Edit2, Trash2, CheckCircle2, Circle, Play, Pause, RotateCcw, Music } from 'lucide-react'
 
 interface TodoItem {
   id: string
@@ -30,7 +30,12 @@ export default function StudySession() {
     subject: 'React Hooks',
     pomodoroDuration: 25,
     pomodoroBreak: 5,
+    longBreakDuration: 15,
+    maxParticipants: 50,
   })
+
+  const [chatTab, setChatTab] = useState<'discussion' | 'notes'>('discussion')
+  const [isPlayingMusic, setIsPlayingMusic] = useState(false)
 
   const [isRunning, setIsRunning] = useState(false)
   const [timeLeft, setTimeLeft] = useState(session.pomodoroDuration * 60)
@@ -126,10 +131,19 @@ export default function StudySession() {
                 <span className="inline-block mr-4">👤 {user?.fullName}</span>
                 <span className="inline-block mr-4 text-green-600">🟢 Đang hoạt động</span>
               </p>
+              {/* Session Details */}
+              <div className="mt-3 flex gap-4 text-sm text-gray-600">
+                {session.topic && (
+                  <span>📚 Chủ đề: <strong>{session.topic}</strong></span>
+                )}
+                {session.subject && (
+                  <span>🎓 Môn: <strong>{session.subject}</strong></span>
+                )}
+              </div>
             </div>
             <div className="bg-indigo-50 border-2 border-indigo-200 rounded-lg p-4 text-center">
               <p className="text-xs text-gray-600 mb-1">Thành viên tham gia</p>
-              <p className="text-2xl font-bold text-indigo-600">2 / 50</p>
+              <p className="text-2xl font-bold text-indigo-600">2 / {session.maxParticipants || 50}</p>
             </div>
           </div>
         </div>
@@ -192,36 +206,69 @@ export default function StudySession() {
 
             {/* Chat */}
             <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden flex flex-col h-96">
-              <div className="p-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="font-bold text-gray-800">💬 Trò chuyện phiên học</h3>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg) => (
-                  <div key={msg.id} className="bg-blue-50 rounded-lg p-3">
-                    <p className="font-bold text-gray-800 text-sm">{msg.user}</p>
-                    <p className="text-gray-700 text-sm mt-1">{msg.text}</p>
-                    <p className="text-xs text-gray-500 mt-1">{msg.timestamp}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-4 border-t border-gray-200 bg-gray-50 flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Nhập tin nhắn..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                />
+              {/* Chat Tabs */}
+              <div className="flex border-b border-gray-200 bg-gray-50">
                 <button
-                  onClick={sendMessage}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-2 transition"
+                  onClick={() => setChatTab('discussion')}
+                  className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${
+                    chatTab === 'discussion'
+                      ? 'text-indigo-600 border-b-2 border-indigo-600'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
                 >
-                  <Send className="w-4 h-4" />
+                  💬 Thảo luận
+                </button>
+                <button
+                  onClick={() => setChatTab('notes')}
+                  className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${
+                    chatTab === 'notes'
+                      ? 'text-indigo-600 border-b-2 border-indigo-600'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  🗒️ Ghi chú nhập nhanh
                 </button>
               </div>
+
+              {/* Chat Content */}
+              {chatTab === 'discussion' ? (
+                <>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {messages.map((msg) => (
+                      <div key={msg.id} className="bg-blue-50 rounded-lg p-3">
+                        <p className="font-bold text-gray-800 text-sm">{msg.user}</p>
+                        <p className="text-gray-700 text-sm mt-1">{msg.text}</p>
+                        <p className="text-xs text-gray-500 mt-1">{msg.timestamp}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-4 border-t border-gray-200 bg-gray-50 flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nhập tin nhắn..."
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      onClick={sendMessage}
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center gap-2 transition"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 overflow-y-auto p-4">
+                  <textarea
+                    placeholder="Ghi chú nhanh của bạn..."
+                    className="w-full h-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500 resize-none"
+                    defaultValue="- Học xong section Hooks&#10;- Cần ôn tập lại useEffect"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
@@ -280,6 +327,55 @@ export default function StudySession() {
                   className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition"
                 >
                   <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Nhạc học tập */}
+            <div className="bg-white rounded-2xl border-2 border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                  <Music className="w-5 h-5 text-orange-500" />
+                  Nhạc học tập
+                </h3>
+              </div>
+
+              {session.backgroundMusic && session.backgroundMusic !== 'none' && (
+                <>
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4 mb-4">
+                    <p className="text-sm font-semibold text-gray-800 mb-2">
+                      {session.backgroundMusic === 'lofi' && '🎵 Lo-fi'}
+                      {session.backgroundMusic === 'classical' && '🎻 Nhạc cổ điển'}
+                      {session.backgroundMusic === 'ambient' && '🌊 Âm thanh xung quanh'}
+                      {session.backgroundMusic === 'nature' && '🌿 Âm thanh tự nhiên'}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setIsPlayingMusic(!isPlayingMusic)}
+                        className={`flex-1 px-3 py-2 rounded-lg font-semibold text-sm transition ${
+                          isPlayingMusic
+                            ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                            : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                        }`}
+                      >
+                        {isPlayingMusic ? '⏸️ Dừng' : '▶️ Phát'}
+                      </button>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        defaultValue="50"
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-2">
+                <p className="text-xs text-gray-600 font-semibold">Chế độ khác</p>
+                <button className="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg transition border border-gray-200">
+                  🎵 Danh sách phát Spotify
                 </button>
               </div>
             </div>

@@ -51,8 +51,12 @@ export default function Study() {
     title: '',
     description: '',
     relatedCourseId: '',
+    topic: '',
+    subject: '',
     workDuration: 25,
     breakDuration: 5,
+    longBreakDuration: 15,
+    maxParticipants: 50,
     backgroundMusic: 'none',
   })
   const [pomodoroPreset, setPomodoroPreset] = useState('classic')
@@ -99,8 +103,12 @@ export default function Study() {
         title: formData.title,
         description: formData.description,
         relatedCourseId: formData.relatedCourseId || null,
+        topic: formData.topic || null,
+        subject: formData.subject || null,
         workDuration: formData.workDuration,
         breakDuration: formData.breakDuration,
+        longBreakDuration: formData.longBreakDuration,
+        maxParticipants: formData.maxParticipants,
         backgroundMusic: formData.backgroundMusic,
       })
 
@@ -109,8 +117,12 @@ export default function Study() {
         title: '',
         description: '',
         relatedCourseId: '',
+        topic: '',
+        subject: '',
         workDuration: 25,
         breakDuration: 5,
+        longBreakDuration: 15,
+        maxParticipants: 50,
         backgroundMusic: 'none',
       })
       setPomodoroPreset('classic')
@@ -141,7 +153,7 @@ export default function Study() {
           </button>
           <div className="flex items-center gap-3">
             <Users className="w-7 h-7 text-indigo-600" />
-            <h1 className="text-3xl font-bold text-gray-800">Học Cùng Tôi</h1>
+            <h1 className="text-2xl font-bold text-gray-800">Phiên Học</h1>
           </div>
           <p className="text-gray-600 mt-2">Quản lý phiên học và theo dõi tiến độ của bạn</p>
         </div>
@@ -492,85 +504,156 @@ export default function Study() {
 
               {/* Khóa học liên quan */}
               <div>
-                <label className="block text-sm font-bold text-gray-800 mb-2">Khóa học liên quan (Tùy chọn)</label>
-                <input
-                  type="number"
-                  placeholder="ID khóa học"
+                <label className="block text-sm font-bold text-gray-800 mb-2">Liên kết với nhóm học (Tùy chọn)</label>
+                <select
                   value={formData.relatedCourseId}
                   onChange={(e) => setFormData({ ...formData, relatedCourseId: e.target.value })}
                   className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500"
-                />
+                >
+                  <option value="">Chọn nhóm (tùy chọn)</option>
+                  <option value="">Không có nhóm</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Liên kết phiên này với nhóm để kiếm XP cho nhóm và xuất hiện trên bảng xếp hạng nhóm</p>
               </div>
 
-              {/* Cài đặt Pomodoro */}
-              <div className="border-t-2 border-b-2 border-gray-200 py-6">
-                <h3 className="font-bold text-gray-800 mb-2">🍅 Cài đặt đồng hồ Pomodoro</h3>
-                <p className="text-sm text-gray-600 mb-4">Mẫu có sẵn</p>
-                
-                {/* Tabs */}
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                  {[
-                    { key: 'classic', label: 'Cổ điển (25/5)', duration: 25, break: 5 },
-                    { key: 'short', label: 'Ngắn (15/5)', duration: 15, break: 5 },
-                    { key: 'long', label: 'Dài (50/10)', duration: 50, break: 10 },
-                    { key: 'custom', label: 'Tùy chỉnh', duration: null, break: null }
-                  ].map((preset) => (
-                    <button
-                      key={preset.key}
-                      onClick={() => {
-                        setPomodoroPreset(preset.key)
-                        if (preset.duration !== null) {
-                          setFormData({
-                            ...formData,
-                            workDuration: preset.duration,
-                            breakDuration: preset.break
-                          })
-                        }
-                      }}
-                      className={`px-4 py-2 rounded-lg font-semibold text-sm transition whitespace-nowrap ${
-                        pomodoroPreset === preset.key
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-orange-300'
-                      }`}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
+              {/* Chủ đề */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Chủ đề (Tùy chọn)</label>
+                  <input
+                    type="text"
+                    placeholder="vd: Lập trình"
+                    value={formData.topic}
+                    onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500"
+                  />
                 </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Môn học (Tùy chọn)</label>
+                  <input
+                    type="text"
+                    placeholder="vd: React Hooks"
+                    value={formData.subject}
+                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
 
-                {/* Inputs */}
+              {/* Cài đặt phiên */}
+              <div className="border-t-2 border-b-2 border-gray-200 py-6">
+                <h3 className="font-bold text-gray-800 mb-4">Cài đặt phiên</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-gray-800 mb-2">
-                      <span className="text-orange-600">*</span> Làm việc (phút)
+                      <span className="text-orange-600">*</span> Thời lượng (phút)
                     </label>
                     <input
                       type="number"
                       value={formData.workDuration}
                       onChange={(e) => setFormData({ ...formData, workDuration: parseInt(e.target.value) })}
-                      disabled={pomodoroPreset !== 'custom'}
-                      className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none bg-gray-50 ${
-                        pomodoroPreset !== 'custom'
-                          ? 'border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
-                          : 'border-gray-200 focus:border-orange-500'
-                      }`}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-gray-800 mb-2">
-                      <span className="text-orange-600">*</span> Nghỉ ngắn (phút)
+                      <span className="text-orange-600">*</span> Số người tối đa
                     </label>
                     <input
                       type="number"
-                      value={formData.breakDuration}
-                      onChange={(e) => setFormData({ ...formData, breakDuration: parseInt(e.target.value) })}
-                      disabled={pomodoroPreset !== 'custom'}
-                      className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none bg-gray-50 ${
-                        pomodoroPreset !== 'custom'
-                          ? 'border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
-                          : 'border-gray-200 focus:border-orange-500'
-                      }`}
+                      value={formData.maxParticipants}
+                      onChange={(e) => setFormData({ ...formData, maxParticipants: parseInt(e.target.value) })}
+                      className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500"
                     />
+                  </div>
+                </div>
+
+                {/* Pomodoro Presets */}
+                <div className="mt-6">
+                  <h4 className="font-bold text-gray-800 mb-3">🍅 Cài đặt đồng hồ Pomodoro</h4>
+                  <p className="text-sm text-gray-600 mb-3">Mẫu có sẵn</p>
+                  
+                  <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                    {[
+                      { key: 'classic', label: 'Có điều (25/5/15)', work: 25, short: 5, long: 15 },
+                      { key: 'short', label: 'Ngắn (15/5/10)', work: 15, short: 5, long: 10 },
+                      { key: 'long', label: 'Dài (50/10/20)', work: 50, short: 10, long: 20 },
+                      { key: 'custom', label: 'Tùy chỉnh', work: null, short: null, long: null }
+                    ].map((preset) => (
+                      <button
+                        key={preset.key}
+                        onClick={() => {
+                          setPomodoroPreset(preset.key)
+                          if (preset.work !== null) {
+                            setFormData({
+                              ...formData,
+                              workDuration: preset.work,
+                              breakDuration: preset.short,
+                              longBreakDuration: preset.long
+                            })
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-lg font-semibold text-sm transition whitespace-nowrap ${
+                          pomodoroPreset === preset.key
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-orange-300'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Pomodoro Inputs */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-800 mb-2">
+                        <span className="text-orange-600">*</span> Làm việc (phút)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.workDuration}
+                        onChange={(e) => setFormData({ ...formData, workDuration: parseInt(e.target.value) })}
+                        disabled={pomodoroPreset !== 'custom'}
+                        className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none bg-gray-50 ${
+                          pomodoroPreset !== 'custom'
+                            ? 'border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                            : 'border-gray-200 focus:border-orange-500'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-800 mb-2">
+                        <span className="text-orange-600">*</span> Nghỉ ngắn (phút)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.breakDuration}
+                        onChange={(e) => setFormData({ ...formData, breakDuration: parseInt(e.target.value) })}
+                        disabled={pomodoroPreset !== 'custom'}
+                        className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none bg-gray-50 ${
+                          pomodoroPreset !== 'custom'
+                            ? 'border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                            : 'border-gray-200 focus:border-orange-500'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-800 mb-2">
+                        <span className="text-orange-600">*</span> Nghỉ dài (phút)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.longBreakDuration}
+                        onChange={(e) => setFormData({ ...formData, longBreakDuration: parseInt(e.target.value) })}
+                        disabled={pomodoroPreset !== 'custom'}
+                        className={`w-full px-3 py-2 border-2 rounded-lg focus:outline-none bg-gray-50 ${
+                          pomodoroPreset !== 'custom'
+                            ? 'border-gray-200 text-gray-400 cursor-not-allowed opacity-60'
+                            : 'border-gray-200 focus:border-orange-500'
+                        }`}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
