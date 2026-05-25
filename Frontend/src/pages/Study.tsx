@@ -50,14 +50,12 @@ export default function Study() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    relatedCourseId: '',
     topic: '',
     subject: '',
     workDuration: 25,
     breakDuration: 5,
     longBreakDuration: 15,
     maxParticipants: 50,
-    backgroundMusic: 'none',
   })
   const [pomodoroPreset, setPomodoroPreset] = useState('classic')
 
@@ -102,28 +100,24 @@ export default function Study() {
       const response = await axiosClient.post('/sessions', {
         title: formData.title,
         description: formData.description,
-        relatedCourseId: formData.relatedCourseId || null,
         topic: formData.topic || null,
         subject: formData.subject || null,
         workDuration: formData.workDuration,
         breakDuration: formData.breakDuration,
         longBreakDuration: formData.longBreakDuration,
         maxParticipants: formData.maxParticipants,
-        backgroundMusic: formData.backgroundMusic,
       })
 
       setShowCreateModal(false)
       setFormData({
         title: '',
         description: '',
-        relatedCourseId: '',
         topic: '',
         subject: '',
         workDuration: 25,
         breakDuration: 5,
         longBreakDuration: 15,
         maxParticipants: 50,
-        backgroundMusic: 'none',
       })
       setPomodoroPreset('classic')
       
@@ -502,20 +496,6 @@ export default function Study() {
                 />
               </div>
 
-              {/* Khóa học liên quan */}
-              <div>
-                <label className="block text-sm font-bold text-gray-800 mb-2">Liên kết với nhóm học (Tùy chọn)</label>
-                <select
-                  value={formData.relatedCourseId}
-                  onChange={(e) => setFormData({ ...formData, relatedCourseId: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500"
-                >
-                  <option value="">Chọn nhóm (tùy chọn)</option>
-                  <option value="">Không có nhóm</option>
-                </select>
-                <p className="text-xs text-gray-500 mt-1">Liên kết phiên này với nhóm để kiếm XP cho nhóm và xuất hiện trên bảng xếp hạng nhóm</p>
-              </div>
-
               {/* Chủ đề */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -658,21 +638,7 @@ export default function Study() {
                 </div>
               </div>
 
-              {/* Nhạc nền */}
-              <div>
-                <label className="block text-sm font-bold text-gray-800 mb-2">Nhạc nền (Tùy chọn)</label>
-                <select
-                  value={formData.backgroundMusic}
-                  onChange={(e) => setFormData({ ...formData, backgroundMusic: e.target.value })}
-                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-orange-500"
-                >
-                  <option value="none">Không có nhạc</option>
-                  <option value="lofi">Lo-fi</option>
-                  <option value="classical">Nhạc cổ điển</option>
-                  <option value="ambient">Âm thanh xung quanh</option>
-                  <option value="nature">Âm thanh tự nhiên</option>
-                </select>
-              </div>
+
             </div>
 
             {/* Footer */}
