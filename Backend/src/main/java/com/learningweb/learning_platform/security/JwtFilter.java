@@ -29,36 +29,42 @@ public class JwtFilter extends OncePerRequestFilter { // OncePerRequestFilter: L
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userEmail;
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+        try {
+            final String authHeader = request.getHeader("Authorization");
+            final String jwt;
+            final String userEmail;
+            
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-        jwt = authHeader.substring(7);
-        userEmail = jwtService.extractEmail(jwt); // Nhờ JwtService đọc email
+            jwt = authHeader.substring(7);
+            userEmail = jwtService.extractEmail(jwt); // Có thể trả về null nếu token invalid
 
-        // Nếu đọc được email mà chưa được hệ thống ghi nhận
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            Optional<User> userOptional = userRepository.findByEmail(userEmail);
+            // Nếu đọc được email mà chưa được hệ thống ghi nhận
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                Optional<User> userOptional = userRepository.findByEmail(userEmail);
 
-            if (userOptional.isPresent()) {
-                User user = userOptional.get();
+                if (userOptional.isPresent()) {
+                    User user = userOptional.get();
 
-                // kiểm tra hợp lệ không
-                if (jwtService.isTokenValid(jwt, user.getEmail())) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            user,
-                            null,
-                            List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
-                    );
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    // kiểm tra hợp lệ không
+                    if (jwtService.isTokenValid(jwt, user.getEmail())) {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                user,
+                                null,
+                                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
+                        );
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
                 }
             }
+            filterChain.doFilter(request, response);
+        } catch (Exception e) {
+            System.err.println("[JwtFilter] Error processing JWT: " + e.getMessage());
+            filterChain.doFilter(request, response); // Continue without auth if error
         }
-        filterChain.doFilter(request, response);
     }
 }
