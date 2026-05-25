@@ -28,8 +28,14 @@ public class StudySession {
 
     private Long relatedCourseId;
 
+    private String topic;
+    private String subject;
+
     private Integer workDuration;
     private Integer breakDuration;
+    private Integer longBreakDuration;
+
+    private Integer maxParticipants;
 
     private String backgroundMusic;
 

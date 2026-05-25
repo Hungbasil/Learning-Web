@@ -31,8 +31,12 @@ public class StudySessionController {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .relatedCourseId(request.getRelatedCourseId())
+                .topic(request.getTopic())
+                .subject(request.getSubject())
                 .workDuration(request.getWorkDuration())
                 .breakDuration(request.getBreakDuration())
+                .longBreakDuration(request.getLongBreakDuration())
+                .maxParticipants(request.getMaxParticipants())
                 .backgroundMusic(request.getBackgroundMusic())
                 .status("ONGOING") // Bắt đầu đếm giờ
                 .build();
