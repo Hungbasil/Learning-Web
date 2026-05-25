@@ -70,7 +70,7 @@ export default function Study() {
   const fetchSessions = async () => {
     try {
       setLoading(true)
-      const response = await axiosClient.get('/api/sessions/history')
+      const response = await axiosClient.get('/sessions/history')
       setSessions(response.data)
     } catch (error) {
       console.error('Failed to fetch sessions:', error)
@@ -81,7 +81,7 @@ export default function Study() {
 
   const fetchStats = async () => {
     try {
-      const response = await axiosClient.get(`/api/sessions/stats?days=${timePeriod}`)
+      const response = await axiosClient.get(`/sessions/stats?days=${timePeriod}`)
       setStats(response.data)
     } catch (error) {
       console.error('Failed to fetch stats:', error)
@@ -95,7 +95,7 @@ export default function Study() {
     }
 
     try {
-      const response = await axiosClient.post('/api/sessions', {
+      const response = await axiosClient.post('/sessions', {
         title: formData.title,
         description: formData.description,
         relatedCourseId: formData.relatedCourseId || null,
