@@ -30,6 +30,7 @@ interface MusicTrack {
   title: string
   artist: string
   category: string
+  audioUrl?: string        // Direct MP3 file (CORS-enabled)
   spotifyUrl?: string
   youtubeUrl?: string
   duration?: number
@@ -812,9 +813,12 @@ export default function StudySession() {
           <audio
             ref={audioRef}
             crossOrigin="anonymous"
-            src={selectedMusicTrack.youtubeUrl || selectedMusicTrack.spotifyUrl || ''}
+            src={selectedMusicTrack.audioUrl || selectedMusicTrack.youtubeUrl || selectedMusicTrack.spotifyUrl || ''}
             onPlay={() => console.log('Music started playing')}
-            onError={(e) => console.error('Error loading music:', e)}
+            onError={(e) => {
+              console.error('Error loading music:', e)
+              alert('Không thể phát nhạc từ nguồn này. Vui lòng thử nhạc khác hoặc báo cáo lỗi.')
+            }}
           />
         )}
       </div>
