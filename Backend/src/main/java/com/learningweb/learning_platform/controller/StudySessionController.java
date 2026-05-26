@@ -301,6 +301,28 @@ public class StudySessionController {
         return ResponseEntity.ok("Xóa ghi chú thành công");
     }
 
+    // ===== DELETE SESSION ENDPOINT =====
+    
+    // Delete a session and related todos/notes
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteSession(@PathVariable Long id) {
+        StudySession session = sessionRepository.findById(id).orElse(null);
+        if (session == null) return ResponseEntity.badRequest().body("Không tìm thấy phiên học");
+
+        // Delete all related todos
+        List<StudyTodoItem> todos = todoRepository.findBySessionId(id);
+        todoRepository.deleteAll(todos);
+
+        // Delete all related notes
+        List<StudyNote> notes = noteRepository.findBySessionId(id);
+        noteRepository.deleteAll(notes);
+
+        // Delete the session
+        sessionRepository.delete(session);
+        
+        return ResponseEntity.ok("Xóa phiên học thành công");
+    }
+
     // ===== BACKGROUND MUSIC ENDPOINT =====
     
     // Update background music for session
