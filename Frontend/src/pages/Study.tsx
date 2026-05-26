@@ -291,6 +291,54 @@ export default function Study() {
             {/* Stats Grid */}
             {stats ? (
               <>
+                {/* Completed Sessions List */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    Phiên Hoàn Thành ({sessions.filter(s => s.status === 'COMPLETED').length})
+                  </h3>
+                  {sessions.filter(s => s.status === 'COMPLETED').length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {sessions
+                        .filter(s => s.status === 'COMPLETED')
+                        .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+                        .slice(0, 6)
+                        .map((session) => (
+                          <div
+                            key={session.id}
+                            className="bg-white rounded-xl p-4 border border-green-100 hover:border-green-300 transition"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <h4 className="font-semibold text-gray-800">{session.title}</h4>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Hoàn thành</span>
+                            </div>
+                            <p className="text-xs text-gray-500 mb-3">
+                              {new Date(session.startTime).toLocaleDateString('vi-VN')}
+                            </p>
+                            <div className="space-y-1 text-xs text-gray-600 mb-3">
+                              {session.actualDuration && (
+                                <div>⏱️ Thời gian: {session.actualDuration} phút</div>
+                              )}
+                              {session.pomodorosCompleted && (
+                                <div>🍅 Pomodoros: {session.pomodorosCompleted}</div>
+                              )}
+                              {session.xpEarned && (
+                                <div>⚡ XP: +{session.xpEarned}</div>
+                              )}
+                              {session.notesWritten && (
+                                <div>📝 Ghi chú: {session.notesWritten}</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 rounded-xl p-6 text-center text-gray-600">
+                      Chưa có phiên hoàn thành trong khoảng thời gian này
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                   {/* Total Study Time */}
                   <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">

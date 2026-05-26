@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Layout } from '@/components/Layout'
@@ -32,6 +32,7 @@ interface MusicTrack {
   category: string
   spotifyUrl?: string
   youtubeUrl?: string
+  duration?: number
 }
 
 export default function StudySession() {
@@ -39,6 +40,10 @@ export default function StudySession() {
   const navigate = useNavigate()
   const location = useLocation()
   const { token, user } = useAuthStore()
+  
+  // Audio player reference
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const sessionStartTimeRef = useRef<Date>(new Date())
 
   const [session, setSession] = useState<any>(location.state?.session || null)
   const [loading, setLoading] = useState(true)
@@ -158,10 +163,115 @@ export default function StudySession() {
     return () => clearInterval(interval)
   }, [isRunning, isWorkTime, session, pomodorosCount])
 
+  // Audio playback synchronization
+  useEffect(() => {
+    if (!audioRef.current || !selectedMusicTrack) return
+
+    if (isPlayingMusic) {
+      audioRef.current.volume = volume / 100
+      audioRef.current.play().catch(err => console.error('Lỗi phát nhạc:', err))
+    } else {
+      audioRef.current.pause()
+    }
+  }, [isPlayingMusic, volume])
+
+  // Handle music progress update
+  useEffect(() => {
+    if (!audioRef.current) return
+
+    const handleTimeUpdate = () => {
+      if (audioRef.current && audioRef.current.duration) {
+        const progress = (audioRef.current.currentTime / audioRef.current.duration) * 100
+        setMusicProgress(progress)
+      }
+    }
+
+    const handleEnded = () => {
+      if (autoPlay && musicTracks.length > 1) {
+        // Play next track if autoPlay enabled
+        const currentIndex = musicTracks.findIndex(t => t.id.toString() === selectedMusic)
+        if (currentIndex < musicTracks.length - 1) {
+          updateBackgroundMusic(musicTracks[currentIndex + 1].id.toString())
+        }
+      } else {
+        setIsPlayingMusic(false)
+      }
+    }
+
+    audioRef.current.addEventListener('timeupdate', handleTimeUpdate)
+    audioRef.current.addEventListener('ended', handleEnded)
+
+    return () => {
+      audioRef.current?.removeEventListener('timeupdate', handleTimeUpdate)
+      audioRef.current?.removeEventListener('ended', handleEnded)
+    }
+  }, [autoPlay, musicTracks, selectedMusic])
+
+  // Handle session completion and cleanup
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+      completeAndCleanupSession()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // User left the page, mark session as completed
+        completeAndCleanupSession()
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [session, pomodorosCount])
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Complete session and schedule cleanup
+  const completeAndCleanupSession = async () => {
+    if (!session) return
+
+    try {
+      // Calculate actual duration
+      const actualDuration = Math.floor((new Date().getTime() - sessionStartTimeRef.current.getTime()) / 1000 / 60)
+
+      // Update session to completed
+      await axiosClient.put(`/sessions/${session.id}/complete`, {
+        actualDuration,
+        pomodorosCompleted: pomodorosCount,
+        xpEarned: Math.min(pomodorosCount * 10, 100),
+        notesWritten: notes.length,
+        tasksCompleted: todos.filter(t => t.completed).length
+      })
+
+      // Schedule deletion after 5 minutes
+      setTimeout(async () => {
+        try {
+          await axiosClient.delete(`/sessions/${session.id}`)
+          console.log('Session deleted after 5 minutes')
+        } catch (error) {
+          console.error('Error deleting session:', error)
+        }
+      }, 5 * 60 * 1000)
+
+      // Pause music
+      if (audioRef.current) {
+        audioRef.current.pause()
+        setIsPlayingMusic(false)
+      }
+    } catch (error) {
+      console.error('Error completing session:', error)
+    }
   }
 
   // Todo functions
@@ -232,9 +342,23 @@ export default function StudySession() {
       })
       setSelectedMusic(musicId)
       setSession({ ...session, backgroundMusic: musicId })
+      
+      // Reset music progress and pause
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0
+        setMusicProgress(0)
+        setIsPlayingMusic(false)
+      }
     } catch (error) {
       console.error('Error updating music:', error)
       alert('Không thể cập nhật nhạc')
+    }
+  }
+
+  const seekMusic = (progress: number) => {
+    if (audioRef.current && selectedMusicTrack) {
+      audioRef.current.currentTime = (progress / 100) * (selectedMusicTrack.duration || 220)
+      setMusicProgress(progress)
     }
   }
 
@@ -619,7 +743,7 @@ export default function StudySession() {
                       min="0"
                       max="100"
                       value={musicProgress}
-                      onChange={(e) => setMusicProgress(parseInt(e.target.value))}
+                      onChange={(e) => seekMusic(parseInt(e.target.value))}
                       className="w-full cursor-pointer"
                     />
                     <div className="flex justify-between text-xs text-gray-500">
@@ -682,6 +806,17 @@ export default function StudySession() {
             </div>
           </div>
         </div>
+
+        {/* Hidden Audio Element for Music Playback */}
+        {selectedMusicTrack && (
+          <audio
+            ref={audioRef}
+            crossOrigin="anonymous"
+            src={selectedMusicTrack.youtubeUrl || selectedMusicTrack.spotifyUrl || ''}
+            onPlay={() => console.log('Music started playing')}
+            onError={(e) => console.error('Error loading music:', e)}
+          />
+        )}
       </div>
     </Layout>
   )
