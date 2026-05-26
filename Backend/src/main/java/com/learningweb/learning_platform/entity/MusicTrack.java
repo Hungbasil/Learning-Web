@@ -18,8 +18,10 @@ public class MusicTrack {
     private String title;
     private String artist;
     private String category; // lofi, classical, ambient, nature, jazz, etc.
-    private String spotifyUrl; // Link to Spotify or streaming service
-    private String youtubeUrl;
+    
+    private String audioUrl;     // Direct MP3 file URL (CORS-enabled) - ĐỦ TỐI ƯU
+    private String spotifyUrl;   // Link to Spotify or streaming service
+    private String youtubeUrl;   // Backup YouTube link
     
     private Integer duration; // Thời lượng nhạc (giây)
     private String thumbnailUrl;
