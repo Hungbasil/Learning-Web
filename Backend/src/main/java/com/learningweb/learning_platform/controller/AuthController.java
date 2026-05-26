@@ -43,7 +43,6 @@ public class AuthController {
         user.setRole("ROLE_USER");
         user.setIsEmailVerified(false);
 
-
         String generatedOtp = String.valueOf((int) (Math.random() * 900000) + 100000);
         user.setOtpCode(generatedOtp);
         user.setOtpExpiryTime(LocalDateTime.now().plusMinutes(5));

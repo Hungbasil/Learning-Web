@@ -16,6 +16,7 @@ public class MusicTrackDTO {
     private String title;
     private String artist;
     private String category;
+    private String audioUrl;     
     private String spotifyUrl;
     private String youtubeUrl;
     private Integer duration;
