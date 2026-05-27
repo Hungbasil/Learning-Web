@@ -36,6 +36,11 @@ interface MusicTrack {
   duration?: number
 }
 
+interface SessionCompletionState {
+  isSessionEnded: boolean
+  completedAt: Date | null
+}
+
 // Utility function to validate if URL is playable in <audio> tag
 const isValidAudioUrl = (url?: string): boolean => {
   if (!url) return false
@@ -92,6 +97,14 @@ export default function StudySession() {
   const [isRunning, setIsRunning] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0)
   const [isWorkTime, setIsWorkTime] = useState(true)
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null)
+  const [totalSessionDuration, setTotalSessionDuration] = useState(0)
+  const [sessionCompleted, setSessionCompleted] = useState(false)
+  const [completedAt, setCompletedAt] = useState<Date | null>(null)
+  const [isProcessingAction, setIsProcessingAction] = useState(false)
+  const [sessionError, setSessionError] = useState<string | null>(null)
+  const [showExtendDialog, setShowExtendDialog] = useState(false)
+  const [extendDurationOptions] = useState([5, 10, 15, 25, 50])
   const [todos, setTodos] = useState<TodoItem[]>([])
   const [newTodo, setNewTodo] = useState('')
   
@@ -141,8 +154,31 @@ export default function StudySession() {
         setNotes(data.notes || [])
         setSelectedMusic(data.session.backgroundMusic || null)
         
-        // Initialize timer
-        setTimeLeft((data.session.workDuration || 25) * 60)
+        // Initialize timer from localStorage or backend
+        const savedStartTime = localStorage.getItem(`session_start_${sessionId}`)
+        const workDuration = (data.session.workDuration || 25) * 60
+        
+        if (savedStartTime) {
+          // Session already started - calculate remaining time
+          const startTime = parseInt(savedStartTime)
+          const elapsedTime = Math.floor((Date.now() - startTime) / 1000)
+          const remaining = Math.max(0, workDuration - elapsedTime)
+          setTimeLeft(remaining)
+          setSessionStartTime(startTime)
+          setTotalSessionDuration(workDuration)
+          
+          if (remaining > 0) {
+            setIsRunning(true) // Auto-start the timer
+          } else {
+            // Session already completed
+            setSessionCompleted(true)
+            setCompletedAt(new Date(startTime + workDuration * 1000))
+          }
+        } else {
+          // First time loading - initialize
+          setTimeLeft(workDuration)
+          setTotalSessionDuration(workDuration)
+        }
       } catch (error) {
         console.error('Error loading session:', error)
       } finally {
@@ -177,31 +213,35 @@ export default function StudySession() {
     localStorage.setItem(`chat_${sessionId}`, JSON.stringify(messages))
   }, [messages, sessionId])
 
-  // Pomodoro timer
+  // Pomodoro timer with persistent state
   useEffect(() => {
-    if (!isRunning || !session) return
+    if (!session) return
+
+    // Auto-start on first load
+    if (!isRunning && sessionStartTime === null && timeLeft > 0) {
+      setSessionStartTime(Date.now())
+      localStorage.setItem(`session_start_${sessionId}`, Date.now().toString())
+      setIsRunning(true)
+      return
+    }
+
+    if (!isRunning || sessionCompleted) return
 
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          // Switch to next phase
-          const nextIsWorkTime = !isWorkTime
-          setIsWorkTime(nextIsWorkTime)
-          
-          if (!nextIsWorkTime) {
-            setPomodorosCount(pomodorosCount + 1)
-          }
-          
-          return nextIsWorkTime 
-            ? (session.workDuration || 25) * 60 
-            : (session.breakDuration || 5) * 60
+          // Session completed
+          setSessionCompleted(true)
+          setCompletedAt(new Date())
+          setIsRunning(false)
+          return 0
         }
         return prev - 1
       })
     }, 1000)
 
     return () => clearInterval(interval)
-  }, [isRunning, isWorkTime, session, pomodorosCount])
+  }, [isRunning, session, sessionCompleted, sessionId, sessionStartTime, timeLeft])
 
   // Audio playback synchronization
   useEffect(() => {
@@ -247,29 +287,19 @@ export default function StudySession() {
     }
   }, [autoPlay, musicTracks, selectedMusic])
 
-  // Handle session completion and cleanup
+  // Mark session as completed when timer finishes - no API call yet
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
-      e.returnValue = ''
-      completeAndCleanupSession()
+    if (!sessionCompleted) return
+
+    // Pause music
+    if (audioRef.current) {
+      audioRef.current.pause()
+      setIsPlayingMusic(false)
     }
 
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // User left the page, mark session as completed
-        completeAndCleanupSession()
-      }
-    }
-
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload)
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-    }
-  }, [session, pomodorosCount])
+    // Just show modal - don't call API yet (token might be expired)
+    // API will be called when user chooses an action
+  }, [sessionCompleted])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -277,40 +307,111 @@ export default function StudySession() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  // Complete session and schedule cleanup
-  const completeAndCleanupSession = async () => {
-    if (!session) return
-
+  // End session and delete
+  const endSession = async () => {
     try {
-      // Calculate actual duration
-      const actualDuration = Math.floor((new Date().getTime() - sessionStartTimeRef.current.getTime()) / 1000 / 60)
-
-      // Update session to completed
+      setIsProcessingAction(true)
+      setSessionError(null)
+      
+      // Calculate actual pomodorosCompleted
+      const actualDurationMinutes = Math.floor((Date.now() - (sessionStartTime || Date.now())) / 1000 / 60)
+      const workDurationMinutes = session.workDuration || 25
+      const calculatedPomodoros = Math.floor(actualDurationMinutes / workDurationMinutes)
+      
+      // First, complete the session to save stats
       await axiosClient.put(`/sessions/${session.id}/complete`, {
-        actualDuration,
-        pomodorosCompleted: pomodorosCount,
-        xpEarned: Math.min(pomodorosCount * 10, 100),
+        actualDuration: actualDurationMinutes,
+        pomodorosCompleted: calculatedPomodoros,
+        xpEarned: Math.min(calculatedPomodoros * 10, 100),
         notesWritten: notes.length,
         tasksCompleted: todos.filter(t => t.completed).length
       })
 
-      // Schedule deletion after 5 minutes
-      setTimeout(async () => {
-        try {
-          await axiosClient.delete(`/sessions/${session.id}`)
-          console.log('Session deleted after 5 minutes')
-        } catch (error) {
-          console.error('Error deleting session:', error)
-        }
-      }, 5 * 60 * 1000)
-
-      // Pause music
+      // Then delete the session
+      await axiosClient.delete(`/sessions/${session.id}`)
+      
+      // Clear localStorage
+      localStorage.removeItem(`session_start_${sessionId}`)
+      localStorage.removeItem(`pomodoros_${sessionId}`)
+      localStorage.removeItem(`chat_${sessionId}`)
+      
+      // Stop music
       if (audioRef.current) {
         audioRef.current.pause()
         setIsPlayingMusic(false)
       }
-    } catch (error) {
-      console.error('Error completing session:', error)
+      
+      // Navigate back
+      navigate('/study')
+    } catch (error: any) {
+      console.error('Error ending session:', error)
+      const errorMsg = error?.response?.status === 401 || error?.response?.status === 403
+        ? 'Phiên đăng nhập đã hết hạn. Vui lòng tải lại trang để refresh token.'
+        : error?.response?.data?.message || error?.message || 'Không thể kết thúc phiên học'
+      setSessionError(errorMsg)
+      setIsProcessingAction(false)
+    }
+  }
+
+  // Extend session with duration selection
+  const handleExtendSession = async (additionalMinutes: number) => {
+    try {
+      setIsProcessingAction(true)
+      setSessionError(null)
+      
+      // Calculate current pomodoros
+      const actualDurationMinutes = Math.floor((Date.now() - (sessionStartTime || Date.now())) / 1000 / 60)
+      const workDurationMinutes = session.workDuration || 25
+      const calculatedPomodoros = Math.floor(actualDurationMinutes / workDurationMinutes)
+      
+      // Complete the current session to save stats
+      await axiosClient.put(`/sessions/${session.id}/complete`, {
+        actualDuration: actualDurationMinutes,
+        pomodorosCompleted: calculatedPomodoros,
+        xpEarned: Math.min(calculatedPomodoros * 10, 100),
+        notesWritten: notes.length,
+        tasksCompleted: todos.filter(t => t.completed).length
+      })
+
+      // Create new extended session
+      const newSessionResponse = await axiosClient.post('/sessions', {
+        title: session.title,
+        description: session.description,
+        topic: session.topic,
+        subject: session.subject,
+        relatedCourseId: session.relatedCourseId,
+        workDuration: additionalMinutes,
+        breakDuration: session.breakDuration || 5,
+        longBreakDuration: session.longBreakDuration || 15,
+        maxParticipants: session.maxParticipants || 50,
+        backgroundMusic: session.backgroundMusic
+      })
+
+      // Delete old session
+      await axiosClient.delete(`/sessions/${session.id}`)
+      
+      // Clear localStorage and navigate to new session
+      localStorage.removeItem(`session_start_${sessionId}`)
+      localStorage.removeItem(`pomodoros_${sessionId}`)
+      localStorage.removeItem(`chat_${sessionId}`)
+      
+      // Stop music
+      if (audioRef.current) {
+        audioRef.current.pause()
+        setIsPlayingMusic(false)
+      }
+      
+      // Navigate to new session
+      navigate(`/study-session/${newSessionResponse.data.id}`, {
+        state: { session: newSessionResponse.data }
+      })
+    } catch (error: any) {
+      console.error('Error extending session:', error)
+      const errorMsg = error?.response?.status === 401 || error?.response?.status === 403
+        ? 'Phiên đăng nhập đã hết hạn. Vui lòng tải lại trang để refresh token.'
+        : error?.response?.data?.message || error?.message || 'Không thể kéo dài phiên học'
+      setSessionError(errorMsg)
+      setIsProcessingAction(false)
     }
   }
 
@@ -554,33 +655,24 @@ export default function StudySession() {
                 </div>
 
                 {/* Controls */}
-                <div className="flex gap-3 justify-center">
-                  <button
-                    onClick={() => setIsRunning(!isRunning)}
-                    className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg flex items-center gap-2 transition"
-                  >
-                    {isRunning ? (
-                      <>
-                        <Pause className="w-5 h-5" /> Tạm dừng
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-5 h-5" /> Bắt đầu
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsRunning(false)
-                      setTimeLeft((session.workDuration || 25) * 60)
-                      setIsWorkTime(true)
-                      setPomodorosCount(0)
-                    }}
-                    className="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg flex items-center gap-2 transition"
-                  >
-                    <RotateCcw className="w-5 h-5" /> Reset
-                  </button>
-                </div>
+                {!sessionCompleted ? (
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      disabled
+                      className="px-6 py-3 bg-gray-400 text-white font-semibold rounded-lg flex items-center gap-2 cursor-not-allowed opacity-50"
+                      title="Không thể dừng phiên học"
+                    >
+                      <Pause className="w-5 h-5" /> Tạm dừng
+                    </button>
+                    <button
+                      disabled
+                      className="px-6 py-3 bg-gray-400 text-gray-800 font-semibold rounded-lg flex items-center gap-2 cursor-not-allowed opacity-50"
+                      title="Không thể reset phiên học"
+                    >
+                      <RotateCcw className="w-5 h-5" /> Reset
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -917,6 +1009,119 @@ export default function StudySession() {
         {selectedMusicTrack && musicError && (
           <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50">
             <p className="text-sm">{musicError}</p>
+          </div>
+        )}
+
+        {/* Session Completion Modal */}
+        {sessionCompleted && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+              <div className="text-center mb-6">
+                <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Phiên học hoàn thành!</h2>
+                <p className="text-gray-600">Bạn đã hoàn thành phiên học này.</p>
+              </div>
+
+              {/* Session Stats */}
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 mb-6 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Pomodoros:</span>
+                  <span className="font-bold text-green-600">
+                    {Math.floor(Math.floor((Date.now() - (sessionStartTime || Date.now())) / 1000 / 60) / (session.workDuration || 25))}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Thời gian:</span>
+                  <span className="font-bold text-blue-600">
+                    {Math.floor((Date.now() - (sessionStartTime || Date.now())) / 1000 / 60)} phút
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Ghi chú:</span>
+                  <span className="font-bold text-blue-600">{notes.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-700">Công việc hoàn thành:</span>
+                  <span className="font-bold text-purple-600">{todos.filter(t => t.completed).length}/{todos.length}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-700">XP nhận được:</span>
+                  <span className="font-bold text-orange-600">
+                    {Math.min(Math.floor(Math.floor((Date.now() - (sessionStartTime || Date.now())) / 1000 / 60) / (session.workDuration || 25)) * 10, 100)} XP
+                  </span>
+                </div>
+              </div>
+
+              {/* Options */}
+              {sessionError ? (
+                <div className="space-y-3">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-sm text-red-800 font-semibold mb-3">⚠️ Lỗi xử lý phiên học</p>
+                    <p className="text-sm text-red-700 mb-3">{sessionError}</p>
+                    <p className="text-xs text-red-600 mb-3">💡 Gợi ý: Hãy tải lại trang để lấy token mới, rồi thử lại.</p>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition"
+                    >
+                      Tải lại trang
+                    </button>
+                  </div>
+                </div>
+              ) : showExtendDialog ? (
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Chọn thời gian kéo dài:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {extendDurationOptions.map((minutes) => (
+                      <button
+                        key={minutes}
+                        onClick={() => handleExtendSession(minutes)}
+                        disabled={isProcessingAction}
+                        className="px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        {minutes} phút
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setShowExtendDialog(false)}
+                    className="w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition text-sm"
+                  >
+                    Quay lại
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setShowExtendDialog(true)}
+                    disabled={isProcessingAction}
+                    className="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isProcessingAction ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-5 h-5" />
+                        Kéo dài phiên học
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={endSession}
+                    disabled={isProcessingAction}
+                    className="w-full px-4 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isProcessingAction ? 'Đang xử lý...' : 'Kết thúc và rời đi'}
+                  </button>
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500 text-center mt-4">
+                Phiên học sẽ được lưu lại trong lịch sử học tập
+              </p>
+            </div>
           </div>
         )}
       </div>
