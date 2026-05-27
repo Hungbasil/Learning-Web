@@ -36,6 +36,21 @@ interface MusicTrack {
   duration?: number
 }
 
+// Utility function to validate if URL is playable in <audio> tag
+const isValidAudioUrl = (url?: string): boolean => {
+  if (!url) return false
+  
+  // Must end with .mp3
+  if (!url.endsWith('.mp3')) return false
+  
+  // Must NOT be a streaming service (CORS blocked)
+  const isBlocked = url.includes('spotify') || url.includes('youtube') || url.includes('youtu.be')
+  if (isBlocked) return false
+  
+  // Allow both relative paths (/music/song.mp3) and absolute URLs (http://...)
+  return true
+}
+
 export default function StudySession() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
@@ -69,6 +84,7 @@ export default function StudySession() {
   const [shuffleMode, setShuffleMode] = useState(false)
   const [autoPlay, setAutoPlay] = useState(false)
   const [musicProgress, setMusicProgress] = useState(50)
+  const [musicError, setMusicError] = useState<string | null>(null)
   
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     const saved = localStorage.getItem(`chat_${sessionId}`)
@@ -361,6 +377,18 @@ export default function StudySession() {
       audioRef.current.currentTime = (progress / 100) * (selectedMusicTrack.duration || 220)
       setMusicProgress(progress)
     }
+  }
+
+  const handleMusicError = (error: Event) => {
+    console.error('Error loading music:', error)
+    const errorMsg = 'Không thể phát nhạc từ nguồn này. Vui lòng chọn bài khác.'
+    setMusicError(errorMsg)
+    setIsPlayingMusic(false)
+  }
+
+  const handleMusicSelect = async (musicId: string) => {
+    setMusicError(null)
+    await updateBackgroundMusic(musicId)
   }
 
   const sendMessage = () => {
@@ -675,17 +703,27 @@ export default function StudySession() {
                     <p className="text-sm font-semibold text-gray-700">Cài đặt nhạc trung tâm</p>
                     <select
                       value={selectedMusic || ''}
-                      onChange={(e) => updateBackgroundMusic(e.target.value || null)}
+                      onChange={(e) => handleMusicSelect(e.target.value || null)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                     >
                       <option value="">Không có nhạc</option>
-                      {musicTracks.map((track) => (
-                        <option key={track.id} value={track.id.toString()}>
-                          {track.title} - {track.artist} ({track.category})
-                        </option>
-                      ))}
+                      {musicTracks.map((track) => {
+                        const hasValidAudio = isValidAudioUrl(track.audioUrl)
+                        const indicator = hasValidAudio ? '✓' : '⚠️'
+                        return (
+                          <option key={track.id} value={track.id.toString()}>
+                            {indicator} {track.title} - {track.artist} ({track.category})
+                          </option>
+                        )
+                      })}
                     </select>
                   </div>
+
+                  {selectedMusicTrack && !isValidAudioUrl(selectedMusicTrack.audioUrl) && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
+                      <p className="text-xs text-yellow-800">⚠️ Bài nhạc này không có tệp âm thanh phù hợp. Vui lòng chọn bài khác.</p>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -809,17 +847,22 @@ export default function StudySession() {
         </div>
 
         {/* Hidden Audio Element for Music Playback */}
-        {selectedMusicTrack && (
+        {selectedMusicTrack && isValidAudioUrl(selectedMusicTrack.audioUrl) && (
           <audio
             ref={audioRef}
             crossOrigin="anonymous"
-            src={selectedMusicTrack.audioUrl || selectedMusicTrack.youtubeUrl || selectedMusicTrack.spotifyUrl || ''}
-            onPlay={() => console.log('Music started playing')}
-            onError={(e) => {
-              console.error('Error loading music:', e)
-              alert('Không thể phát nhạc từ nguồn này. Vui lòng thử nhạc khác hoặc báo cáo lỗi.')
+            src={selectedMusicTrack.audioUrl}
+            onPlay={() => {
+              setMusicError(null)
+              console.log('Music started playing')
             }}
+            onError={handleMusicError}
           />
+        )}
+        {selectedMusicTrack && musicError && (
+          <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50">
+            <p className="text-sm">{musicError}</p>
+          </div>
         )}
       </div>
     </Layout>
