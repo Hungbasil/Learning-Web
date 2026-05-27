@@ -51,6 +51,29 @@ const isValidAudioUrl = (url?: string): boolean => {
   return true
 }
 
+// Utility function to convert relative paths to full URLs
+const getFullAudioUrl = (audioUrl?: string): string | undefined => {
+  if (!audioUrl) return undefined
+  
+  // If already absolute URL, return as-is
+  if (audioUrl.startsWith('http://') || audioUrl.startsWith('https://')) {
+    return audioUrl
+  }
+  
+  // If relative path, prepend backend URL (works for both localhost and production)
+  if (audioUrl.startsWith('/')) {
+    // Use window.location.origin for production compatibility
+    // In production, frontend and backend are on same domain
+    const backendUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace('/api', '')
+      : window.location.origin
+    
+    return `${backendUrl}${audioUrl}`
+  }
+  
+  return audioUrl
+}
+
 export default function StudySession() {
   const { sessionId } = useParams()
   const navigate = useNavigate()
@@ -379,14 +402,14 @@ export default function StudySession() {
     }
   }
 
-  const handleMusicError = (error: Event) => {
-    console.error('Error loading music:', error)
+  const handleMusicError = (e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
+    console.error('Error loading music:', e)
     const errorMsg = 'Không thể phát nhạc từ nguồn này. Vui lòng chọn bài khác.'
     setMusicError(errorMsg)
     setIsPlayingMusic(false)
   }
 
-  const handleMusicSelect = async (musicId: string) => {
+  const handleMusicSelect = async (musicId: string | null) => {
     setMusicError(null)
     await updateBackgroundMusic(musicId)
   }
@@ -703,7 +726,7 @@ export default function StudySession() {
                     <p className="text-sm font-semibold text-gray-700">Cài đặt nhạc trung tâm</p>
                     <select
                       value={selectedMusic || ''}
-                      onChange={(e) => handleMusicSelect(e.target.value || null)}
+                      onChange={(e) => handleMusicSelect(e.target.value === '' ? null : e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-blue-500"
                     >
                       <option value="">Không có nhạc</option>
@@ -851,7 +874,7 @@ export default function StudySession() {
           <audio
             ref={audioRef}
             crossOrigin="anonymous"
-            src={selectedMusicTrack.audioUrl}
+            src={getFullAudioUrl(selectedMusicTrack.audioUrl)}
             onPlay={() => {
               setMusicError(null)
               console.log('Music started playing')
