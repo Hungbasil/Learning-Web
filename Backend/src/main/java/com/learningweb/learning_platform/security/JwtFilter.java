@@ -27,6 +27,16 @@ public class JwtFilter extends OncePerRequestFilter { // OncePerRequestFilter: L
     @Autowired
     private UserRepository userRepository;
 
+    // Skip JWT validation for static resources and public endpoints
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // Skip static files, public API, etc
+        return path.startsWith("/static/") || 
+               path.startsWith("/api/auth/") || 
+               path.equals("/api/payment/callback");
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         try {
@@ -40,7 +50,7 @@ public class JwtFilter extends OncePerRequestFilter { // OncePerRequestFilter: L
             }
 
             jwt = authHeader.substring(7);
-            userEmail = jwtService.extractEmail(jwt); // Có thể trả về null nếu token invalid
+            userEmail = jwtService.extractEmail(jwt);
 
             // Nếu đọc được email mà chưa được hệ thống ghi nhận
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -64,7 +74,7 @@ public class JwtFilter extends OncePerRequestFilter { // OncePerRequestFilter: L
             filterChain.doFilter(request, response);
         } catch (Exception e) {
             System.err.println("[JwtFilter] Error processing JWT: " + e.getMessage());
-            filterChain.doFilter(request, response); // Continue without auth if error
+            filterChain.doFilter(request, response);
         }
     }
 }

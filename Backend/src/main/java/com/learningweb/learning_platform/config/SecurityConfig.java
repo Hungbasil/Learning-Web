@@ -27,9 +27,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/payment/callback").permitAll()
+                        .requestMatchers("/static/**").permitAll()
                         .requestMatchers("/api/users/admin-only").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
+                .securityMatcher("/**") 
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
