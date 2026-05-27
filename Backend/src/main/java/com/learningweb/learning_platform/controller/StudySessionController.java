@@ -36,25 +36,32 @@ public class StudySessionController {
 
     @PostMapping
     public ResponseEntity<?> createSession(@RequestBody StudySessionRequest request) {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        try {
+            User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        StudySession newSession = StudySession.builder()
-                .user(currentUser)
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .relatedCourseId(request.getRelatedCourseId())
-                .topic(request.getTopic())
-                .subject(request.getSubject())
-                .workDuration(request.getWorkDuration())
-                .breakDuration(request.getBreakDuration())
-                .longBreakDuration(request.getLongBreakDuration())
-                .maxParticipants(request.getMaxParticipants())
-                .backgroundMusic(request.getBackgroundMusic())
-                .status("ONGOING") // Bắt đầu đếm giờ
-                .build();
+            StudySession newSession = StudySession.builder()
+                    .user(currentUser)
+                    .title(request.getTitle())
+                    .description(request.getDescription())
+                    .relatedCourseId(request.getRelatedCourseId())
+                    .topic(request.getTopic())
+                    .subject(request.getSubject())
+                    .workDuration(request.getWorkDuration())
+                    .breakDuration(request.getBreakDuration())
+                    .longBreakDuration(request.getLongBreakDuration())
+                    .maxParticipants(request.getMaxParticipants())
+                    .backgroundMusic(request.getBackgroundMusic())
+                    .status("ONGOING") // Bắt đầu đếm giờ
+                    .build();
 
-        sessionRepository.save(newSession);
-        return ResponseEntity.ok(newSession);
+            StudySession savedSession = sessionRepository.save(newSession);
+            System.out.println("[StudySessionController] Created session: ID=" + savedSession.getId() + ", Title=" + savedSession.getTitle());
+            return ResponseEntity.ok(savedSession);
+        } catch (Exception e) {
+            System.err.println("[StudySessionController] Error creating session: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Lỗi khi tạo phiên học: " + e.getMessage());
+        }
     }
 
     @GetMapping("/history")
@@ -180,15 +187,26 @@ public class StudySessionController {
     // ===== GET Session Detail =====
     @GetMapping("/{id}")
     public ResponseEntity<?> getSessionDetail(@PathVariable Long id) {
-        StudySession session = sessionRepository.findById(id).orElse(null);
-        if (session == null) return ResponseEntity.badRequest().body("Không tìm thấy phiên học");
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("session", session);
-        response.put("todos", todoRepository.findBySessionId(id));
-        response.put("notes", noteRepository.findBySessionId(id));
-        
-        return ResponseEntity.ok(response);
+        try {
+            System.out.println("[StudySessionController] Getting session with ID: " + id);
+            StudySession session = sessionRepository.findById(id).orElse(null);
+            if (session == null) {
+                System.err.println("[StudySessionController] Session not found: " + id);
+                return ResponseEntity.badRequest().body("Không tìm thấy phiên học ID: " + id);
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("session", session);
+            response.put("todos", todoRepository.findBySessionId(id));
+            response.put("notes", noteRepository.findBySessionId(id));
+            
+            System.out.println("[StudySessionController] Session found: " + session.getId());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.err.println("[StudySessionController] Error getting session: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Lỗi khi lấy thông tin phiên học: " + e.getMessage());
+        }
     }
 
     // ===== TODOS ENDPOINTS =====
@@ -327,14 +345,29 @@ public class StudySessionController {
     
     // Update background music for session
     @PutMapping("/{id}/music")
-    public ResponseEntity<?> updateBackgroundMusic(@PathVariable Long id, @RequestBody Map<String, String> request) {
-        StudySession session = sessionRepository.findById(id).orElse(null);
-        if (session == null) return ResponseEntity.badRequest().body("Không tìm thấy phiên học");
+    public ResponseEntity<?> updateBackgroundMusic(
+            @PathVariable Long id, 
+            @RequestBody com.learningweb.learning_platform.dto.UpdateMusicRequest request) {
+        try {
+            StudySession session = sessionRepository.findById(id).orElse(null);
+            if (session == null) {
+                return ResponseEntity.badRequest().body("Không tìm thấy phiên học");
+            }
 
-        String backgroundMusic = request.get("backgroundMusic");
-        session.setBackgroundMusic(backgroundMusic);
-        sessionRepository.save(session);
+            String backgroundMusic = request.getBackgroundMusic();
+            if (backgroundMusic == null || backgroundMusic.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("backgroundMusic không được để trống");
+            }
 
-        return ResponseEntity.ok(session);
+            System.out.println("[StudySessionController] Updating music for session " + id + ": " + backgroundMusic);
+            session.setBackgroundMusic(backgroundMusic);
+            sessionRepository.save(session);
+
+            return ResponseEntity.ok(session);
+        } catch (Exception e) {
+            System.err.println("[StudySessionController] Error updating music: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Lỗi khi cập nhật nhạc: " + e.getMessage());
+        }
     }
 }
