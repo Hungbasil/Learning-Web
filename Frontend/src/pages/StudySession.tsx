@@ -402,6 +402,34 @@ export default function StudySession() {
     }
   }
 
+  // Skip to next track
+  const skipToNextTrack = () => {
+    if (musicTracks.length <= 1) return
+    
+    const currentIndex = musicTracks.findIndex(t => t.id.toString() === selectedMusic)
+    if (currentIndex < musicTracks.length - 1) {
+      // Go to next track
+      updateBackgroundMusic(musicTracks[currentIndex + 1].id.toString())
+    } else {
+      // Loop back to first track
+      updateBackgroundMusic(musicTracks[0].id.toString())
+    }
+  }
+
+  // Skip to previous track
+  const skipToPreviousTrack = () => {
+    if (musicTracks.length <= 1) return
+    
+    const currentIndex = musicTracks.findIndex(t => t.id.toString() === selectedMusic)
+    if (currentIndex > 0) {
+      // Go to previous track
+      updateBackgroundMusic(musicTracks[currentIndex - 1].id.toString())
+    } else {
+      // Loop to last track
+      updateBackgroundMusic(musicTracks[musicTracks.length - 1].id.toString())
+    }
+  }
+
   const handleMusicError = (e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
     console.error('Error loading music:', e)
     const errorMsg = 'Không thể phát nhạc từ nguồn này. Vui lòng chọn bài khác.'
@@ -750,7 +778,7 @@ export default function StudySession() {
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">Phát ngầu nhiên</span>
+                      <span className="text-sm font-semibold text-gray-700">Phát ngẫu nhiên</span>
                       <input
                         type="checkbox"
                         checked={shuffleMode}
@@ -762,7 +790,7 @@ export default function StudySession() {
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">Tự động chuyên bài</span>
+                      <span className="text-sm font-semibold text-gray-700">Tự động chuyển bài</span>
                       <input
                         type="checkbox"
                         checked={autoPlay}
@@ -817,8 +845,10 @@ export default function StudySession() {
                   {/* Player Controls */}
                   <div className="flex items-center justify-center gap-2">
                     <button
-                      onClick={() => {}}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition"
+                      onClick={skipToPreviousTrack}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={musicTracks.length <= 1}
+                      title="Bài trước"
                     >
                       <SkipBack className="w-5 h-5 text-gray-600" />
                     </button>
@@ -839,8 +869,10 @@ export default function StudySession() {
                     </button>
 
                     <button
-                      onClick={() => {}}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition"
+                      onClick={skipToNextTrack}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={musicTracks.length <= 1}
+                      title="Bài tiếp"
                     >
                       <SkipForward className="w-5 h-5 text-gray-600" />
                     </button>
