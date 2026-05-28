@@ -42,7 +42,7 @@ export default function InterviewTest() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const interviewRes = await axiosClient.get(`/api/interviews/${id}`)
+        const interviewRes = await axiosClient.get(`/interviews/${id}`)
         setInterview(interviewRes.data)
         setQuestions(interviewRes.data.questions || [])
       } catch (err) {
@@ -76,7 +76,7 @@ export default function InterviewTest() {
     if (!currentQuestion || !sessionId) return
 
     try {
-      await axiosClient.post(`/api/interviews/sessions/${sessionId}/answers`, {
+      await axiosClient.post(`/interviews/sessions/${sessionId}/answers`, {
         questionId: currentQuestion.id,
         answerText: answers[currentQuestion.id] || ''
       })
@@ -96,14 +96,14 @@ export default function InterviewTest() {
       setSubmitting(true)
       // Save last answer
       if (currentQuestion && answers[currentQuestion.id] !== undefined) {
-        await axiosClient.post(`/api/interviews/sessions/${sessionId}/answers`, {
+        await axiosClient.post(`/interviews/sessions/${sessionId}/answers`, {
           questionId: currentQuestion.id,
           answerText: answers[currentQuestion.id] || ''
         })
       }
 
       // Submit session
-      const response = await axiosClient.put(`/api/interviews/sessions/${sessionId}/submit`)
+      const response = await axiosClient.put(`/interviews/sessions/${sessionId}/submit`)
       navigate(`/interview/${id}/result/${sessionId}`)
     } catch (err) {
       console.error('Lỗi khi nộp bài:', err)

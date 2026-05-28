@@ -52,7 +52,7 @@ export default function InterviewResult() {
     const fetchResult = async () => {
       try {
         setLoading(true)
-        const response = await axiosClient.get(`/api/interviews/sessions/${sessionId}/result`)
+        const response = await axiosClient.get(`/interviews/sessions/${sessionId}/result`)
         setResult(response.data)
       } catch (err) {
         console.error('Lỗi khi tải kết quả:', err)

@@ -37,7 +37,7 @@ export default function InterviewDetail() {
     const fetchInterview = async () => {
       try {
         setLoading(true)
-        const response = await axiosClient.get(`/api/interviews/${id}`)
+        const response = await axiosClient.get(`/interviews/${id}`)
         setInterview(response.data)
       } catch (err) {
         console.error('Lỗi khi tải chi tiết phỏng vấn:', err)
@@ -55,7 +55,7 @@ export default function InterviewDetail() {
   const handleStartInterview = async () => {
     try {
       setStarting(true)
-      const response = await axiosClient.post(`/api/interviews/${id}/start`)
+      const response = await axiosClient.post(`/interviews/${id}/start`)
       const sessionId = response.data.id
       navigate(`/interview/${id}/test/${sessionId}`)
     } catch (err) {

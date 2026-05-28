@@ -48,7 +48,7 @@ export default function Interview() {
         if (selectedField) params.append('field', selectedField)
         
         const response = await axiosClient.get(
-          `/api/interviews${params.toString() ? '?' + params.toString() : ''}`
+          `/interviews${params.toString() ? '?' + params.toString() : ''}`
         )
         setInterviews(response.data)
         setFilteredInterviews(response.data)
