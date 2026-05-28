@@ -30,4 +30,7 @@ public class User {
     private String role;
     private Integer aiTokens = 1;
     private Boolean isEmailVerified = false;
+    
+    private Boolean isPremium = false;
+    private LocalDateTime premiumExpiryDate;
 }

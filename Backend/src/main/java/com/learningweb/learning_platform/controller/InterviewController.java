@@ -23,6 +23,69 @@ public class InterviewController {
     @Autowired private InterviewSessionRepository sessionRepository;
     @Autowired private InterviewAnswerRepository answerRepository;
     @Autowired private com.learningweb.learning_platform.service.OllamaService ollamaService;
+    
+    // ================= [PUBLIC ENDPOINTS] =================
+    
+    @GetMapping
+    public ResponseEntity<?> listInterviews(@RequestParam(required = false) String role, 
+                                            @RequestParam(required = false) String field) {
+        List<Interview> interviews;
+        
+        if (role != null && field != null) {
+            interviews = interviewRepository.findAll().stream()
+                    .filter(i -> role.equals(i.getRole()) && field.equals(i.getField()))
+                    .toList();
+        } else if (role != null) {
+            interviews = interviewRepository.findAll().stream()
+                    .filter(i -> role.equals(i.getRole()))
+                    .toList();
+        } else if (field != null) {
+            interviews = interviewRepository.findAll().stream()
+                    .filter(i -> field.equals(i.getField()))
+                    .toList();
+        } else {
+            interviews = interviewRepository.findAll();
+        }
+        
+        return ResponseEntity.ok(interviews);
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getInterviewDetail(@PathVariable Long id) {
+        Interview interview = interviewRepository.findById(id).orElse(null);
+        
+        if (interview == null) {
+            return ResponseEntity.badRequest().body("Không tìm thấy bài phỏng vấn");
+        }
+        
+        return ResponseEntity.ok(interview);
+    }
+    
+    @GetMapping("/sessions/{sessionId}/result")
+    public ResponseEntity<?> getSessionResult(@PathVariable Long sessionId) {
+        InterviewSession session = sessionRepository.findById(sessionId).orElse(null);
+        
+        if (session == null) {
+            return ResponseEntity.badRequest().body("Không tìm thấy phiên làm bài");
+        }
+        
+        List<InterviewAnswer> answers = answerRepository.findBySession(session);
+        
+        Map<String, Object> result = Map.of(
+            "sessionId", session.getId(),
+            "interviewId", session.getInterview().getId(),
+            "interviewTitle", session.getInterview().getTitle(),
+            "totalScore", session.getTotalScore() != null ? session.getTotalScore() : 0,
+            "passingScore", session.getInterview().getPassingScore(),
+            "status", session.getStatus(),
+            "startTime", session.getStartTime(),
+            "endTime", session.getEndTime(),
+            "answers", answers
+        );
+        
+        return ResponseEntity.ok(result);
+    }
+    
     // ================= [PHẦN CỦA HỌC VIÊN] =================
 
     @PostMapping("/{interviewId}/start")
@@ -65,11 +128,18 @@ public class InterviewController {
 
         // --- BẮT ĐẦU LOGIC AI CHẤM ĐIỂM ---
         List<InterviewAnswer> answers = answerRepository.findBySession(session);
+        int totalScore = 0;
+        int answeredCount = 0;
+        
         for (InterviewAnswer answer : answers) {
-            // Chỉ bắt AI chấm câu nào là "CODE"
-            if ("CODE".equals(answer.getQuestion().getQuestionType()) && answer.getUserAnswer() != null) {
+            if (answer.getUserAnswer() == null || answer.getUserAnswer().trim().isEmpty()) {
+                continue;
+            }
+            
+            answeredCount++;
 
-                System.out.println("⏳ Đang chờ chấm câu hỏi Code id: " + answer.getId() + "...");
+            if ("CODE".equals(answer.getQuestion().getQuestionType())) {
+                System.out.println(" Đang kiểm tra câu hỏi Code id: " + answer.getId() + "...");
                 Map<String, Object> aiResult = ollamaService.gradeCodeAnswer(
                         answer.getQuestion().getContent(),
                         answer.getUserAnswer()
@@ -79,17 +149,39 @@ public class InterviewController {
                     answer.setScore((Integer) aiResult.get("score"));
                     answer.setFeedback(" [Gia sư AI]: " + aiResult.get("feedback"));
                     answerRepository.save(answer);
+                    totalScore += (Integer) aiResult.get("score");
+                    System.out.println("Đã chấm xong!");
+                }
+            } 
+
+            else if ("TECHNICAL".equals(answer.getQuestion().getQuestionType())) {
+                System.out.println(" Đang kiểm tra TECHNICAL id: " + answer.getId() + "...");
+                Map<String, Object> aiResult = ollamaService.gradeCodeAnswer(
+                        answer.getQuestion().getContent(),
+                        answer.getUserAnswer()
+                );
+
+                if (aiResult != null) {
+                    answer.setScore((Integer) aiResult.get("score"));
+                    answer.setFeedback(" [Gia sư AI]: " + aiResult.get("feedback"));
+                    answerRepository.save(answer);
+                    totalScore += (Integer) aiResult.get("score");
                     System.out.println("Đã chấm xong!");
                 }
             }
         }
         // --- KẾT THÚC LOGIC AI ---
 
-        session.setStatus("WAITING_FOR_REVIEW");
+        session.setTotalScore(totalScore);
+        session.setStatus("COMPLETED");
         session.setEndTime(LocalDateTime.now());
         sessionRepository.save(session);
 
-        return ResponseEntity.ok("Đã nộp bài phỏng vấn thành công! Hệ thống sẽ tự động chấm các bài Code, vui lòng chờ Giảng viên đánh giá tổng thể.");
+        return ResponseEntity.ok(Map.of(
+            "message", "Đã nộp bài phỏng vấn thành công!",
+            "sessionId", session.getId(),
+            "totalScore", totalScore
+        ));
     }
 
     // ================= [PHẦN GIẢNG VIÊN] =================
