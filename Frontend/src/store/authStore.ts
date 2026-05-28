@@ -9,6 +9,8 @@ export interface User {
   role: string
   aiTokens: number
   totalXp: number
+  isPremium?: boolean
+  premiumExpiryDate?: string
 }
 
 interface AuthState {

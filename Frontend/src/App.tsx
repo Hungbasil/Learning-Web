@@ -8,6 +8,9 @@ import CourseDetail from '@/pages/CourseDetail'
 import LessonDetail from '@/pages/LessonDetail'
 import AiTutor from '@/pages/AiTutor'
 import Interview from '@/pages/Interview'
+import InterviewDetail from '@/pages/InterviewDetail'
+import InterviewTest from '@/pages/InterviewTest'
+import InterviewResult from '@/pages/InterviewResult'
 import Study from '@/pages/Study'
 import StudySession from '@/pages/StudySession'
 import { useAuthStore } from '@/store/authStore'
@@ -111,6 +114,9 @@ function App() {
         <Route path="/courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
         <Route path="/ai-tutor" element={<AiTutor />} />
         <Route path="/interview" element={<Interview />} />
+        <Route path="/interview/:id" element={<InterviewDetail />} />
+        <Route path="/interview/:id/test/:sessionId" element={<InterviewTest />} />
+        <Route path="/interview/:id/result/:sessionId" element={<InterviewResult />} />
         <Route path="/study" element={<Study />} />
         <Route path="/study-session/:sessionId" element={<StudySession />} />
         <Route path="*" element={<Navigate to="/" />} />
