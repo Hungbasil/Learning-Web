@@ -287,18 +287,14 @@ export default function StudySession() {
     }
   }, [autoPlay, musicTracks, selectedMusic])
 
-  // Mark session as completed when timer finishes - no API call yet
   useEffect(() => {
     if (!sessionCompleted) return
 
-    // Pause music
     if (audioRef.current) {
       audioRef.current.pause()
       setIsPlayingMusic(false)
     }
 
-    // Just show modal - don't call API yet (token might be expired)
-    // API will be called when user chooses an action
   }, [sessionCompleted])
 
   const formatTime = (seconds: number) => {
@@ -318,7 +314,6 @@ export default function StudySession() {
       const workDurationMinutes = session.workDuration || 25
       const calculatedPomodoros = Math.floor(actualDurationMinutes / workDurationMinutes)
       
-      // First, complete the session to save stats
       await axiosClient.put(`/sessions/${session.id}/complete`, {
         actualDuration: actualDurationMinutes,
         pomodorosCompleted: calculatedPomodoros,
@@ -326,22 +321,16 @@ export default function StudySession() {
         notesWritten: notes.length,
         tasksCompleted: todos.filter(t => t.completed).length
       })
-
-      // Then delete the session
-      await axiosClient.delete(`/sessions/${session.id}`)
       
-      // Clear localStorage
       localStorage.removeItem(`session_start_${sessionId}`)
       localStorage.removeItem(`pomodoros_${sessionId}`)
       localStorage.removeItem(`chat_${sessionId}`)
       
-      // Stop music
       if (audioRef.current) {
         audioRef.current.pause()
         setIsPlayingMusic(false)
       }
-      
-      // Navigate back
+
       navigate('/study')
     } catch (error: any) {
       console.error('Error ending session:', error)
@@ -387,10 +376,6 @@ export default function StudySession() {
         backgroundMusic: session.backgroundMusic
       })
 
-      // Delete old session
-      await axiosClient.delete(`/sessions/${session.id}`)
-      
-      // Clear localStorage and navigate to new session
       localStorage.removeItem(`session_start_${sessionId}`)
       localStorage.removeItem(`pomodoros_${sessionId}`)
       localStorage.removeItem(`chat_${sessionId}`)
@@ -1024,12 +1009,7 @@ export default function StudySession() {
 
               {/* Session Stats */}
               <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-4 mb-6 space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-700">Pomodoros:</span>
-                  <span className="font-bold text-green-600">
-                    {Math.floor(Math.floor((Date.now() - (sessionStartTime || Date.now())) / 1000 / 60) / (session.workDuration || 25))}
-                  </span>
-                </div>
+                
                 <div className="flex justify-between">
                   <span className="text-gray-700">Thời gian:</span>
                   <span className="font-bold text-blue-600">

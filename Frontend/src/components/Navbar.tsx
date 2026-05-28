@@ -14,7 +14,7 @@ export function Navbar() {
     { label: 'Trang chủ', href: '/', icon: '🏠' },
     { label: 'Khóa Học', href: '/roadmaps', icon: '🗺️' },
     { label: 'Gia sư AI', href: '/ai-tutor', icon: '🤖' },
-    { label: 'Phòng vấn', href: '/interview', icon: '💬' },
+    { label: 'Phỏng vấn', href: '/interview', icon: '💬' },
     { label: 'Phiên Học', href: '/study', icon: '👥' },
   ]
 
