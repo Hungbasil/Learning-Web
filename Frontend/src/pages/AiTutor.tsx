@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { Layout } from '@/components/Layout'
 import { Bot, ArrowLeft, Check, X, Zap, AlertCircle, Search, Globe, Code2, Smartphone, Database, Cloud, Server, Package, Sun, Coffee, Moon, Star, Download, Eye } from 'lucide-react'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 // ============ TYPES ============
 

@@ -7,7 +7,7 @@ import {
   Zap,
   RotateCcw,
 } from 'lucide-react'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 interface QuizOption {
   id: number

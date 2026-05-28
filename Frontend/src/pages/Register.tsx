@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Mail, Lock, User, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 interface RegisterRequest {
   fullName: string

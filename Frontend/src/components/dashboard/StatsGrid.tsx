@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { Trophy, Flame, Zap, TrendingUp } from 'lucide-react'
 import { StatsCard } from './StatsCard'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 interface DashboardStats {
   totalXp: number

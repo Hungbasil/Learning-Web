@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Layout } from '@/components/Layout'
 import { ArrowLeft, Send, Plus, Edit2, Trash2, CheckCircle2, Circle, Play, Pause, RotateCcw, Music, Settings, X, SkipBack, SkipForward, Volume2 } from 'lucide-react'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 
 interface TodoItem {

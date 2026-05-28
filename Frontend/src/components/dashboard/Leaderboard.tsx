@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Trophy, Medal } from 'lucide-react'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 interface LeaderboardEntry {
   rank: number

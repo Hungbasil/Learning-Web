@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { MapPin, BookOpen } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 interface EnrolledCourse {
   courseId: number

@@ -17,7 +17,7 @@ import {
 import { Layout } from '@/components/Layout'
 import { QuizTest } from '@/components/QuizTest'
 import { CodeChallengeTest } from '@/components/CodeChallengeTest'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 import { useAuthStore } from '@/store/authStore'
 
 // ============ INTERFACES ============

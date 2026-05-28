@@ -12,7 +12,7 @@ import {
   Maximize2,
   Minimize2,
 } from 'lucide-react'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 interface TestCase {
   id: number

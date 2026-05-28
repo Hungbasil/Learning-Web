@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { Layout } from '@/components/Layout'
 import { useAuthStore } from '@/store/authStore'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 // ============ INTERFACES & TYPES ============
 interface Lesson {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Brain } from 'lucide-react'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 interface SkillItem {
   id: number

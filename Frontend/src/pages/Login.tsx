@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 import { useAuthStore } from '@/store/authStore'
 
 interface LoginRequest {

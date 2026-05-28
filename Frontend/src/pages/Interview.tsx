@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Layout } from '@/components/Layout'
 import { Briefcase, ArrowLeft, Filter } from 'lucide-react'
-import {axiosClient} from '@/config/axiosClient'
+import axiosClient from '@/config/axiosClient'
 
 interface Interview {
   id: number

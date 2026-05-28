@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Activity } from 'lucide-react'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 interface HeatmapDay {
   date: string

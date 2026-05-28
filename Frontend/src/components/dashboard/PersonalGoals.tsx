@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Target, Flame, Trophy } from 'lucide-react'
-import { axiosClient } from '@/config/axiosClient'
+import axiosClient  from '@/config/axiosClient'
 
 interface Goal {
   id: number
