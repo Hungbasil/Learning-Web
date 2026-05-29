@@ -3,6 +3,7 @@ package com.learningweb.learning_platform.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "interview_questions")
@@ -17,6 +18,7 @@ public class InterviewQuestion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "interview_id")
+    @JsonIgnore
     private Interview interview;
 
     @Column(columnDefinition = "TEXT")

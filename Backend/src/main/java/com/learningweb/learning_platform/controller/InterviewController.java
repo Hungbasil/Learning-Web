@@ -85,6 +85,34 @@ public class InterviewController {
         
         return ResponseEntity.ok(result);
     }
+
+    @PostMapping("/sessions/{sessionId}/analyze")
+    public ResponseEntity<?> analyzeInterviewAnswers(@PathVariable Long sessionId) {
+        InterviewSession session = sessionRepository.findById(sessionId).orElse(null);
+        
+        if (session == null) {
+            return ResponseEntity.badRequest().body("Không tìm thấy phiên làm bài");
+        }
+        
+        List<InterviewAnswer> answers = answerRepository.findBySession(session);
+        
+        // Chuyển đổi answers thành format cho AI phân tích
+        java.util.List<java.util.Map<String, Object>> answersForAnalysis = new java.util.ArrayList<>();
+        for (InterviewAnswer answer : answers) {
+            java.util.Map<String, Object> answerData = new java.util.HashMap<>();
+            answerData.put("question", answer.getQuestion().getContent());
+            answerData.put("userAnswer", answer.getUserAnswer() != null ? answer.getUserAnswer() : "");
+            answersForAnalysis.add(answerData);
+        }
+        
+        // Gọi service phân tích
+        Map<String, Object> analysis = ollamaService.analyzeInterviewAnswers(
+            session.getInterview().getTitle(),
+            answersForAnalysis
+        );
+        
+        return ResponseEntity.ok(analysis);
+    }
     
     // ================= [PHẦN CỦA HỌC VIÊN] =================
 
