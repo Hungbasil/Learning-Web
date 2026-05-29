@@ -13,6 +13,8 @@ import InterviewTest from '@/pages/InterviewTest'
 import InterviewResult from '@/pages/InterviewResult'
 import Study from '@/pages/Study'
 import StudySession from '@/pages/StudySession'
+import Subscription from '@/pages/Subscription'
+import PaymentHistory from '@/pages/PaymentHistory'
 import { useAuthStore } from '@/store/authStore'
 import { ArrowRight } from 'lucide-react'
 
@@ -119,6 +121,8 @@ function App() {
         <Route path="/interview/:id/result/:sessionId" element={<InterviewResult />} />
         <Route path="/study" element={<Study />} />
         <Route path="/study-session/:sessionId" element={<StudySession />} />
+        <Route path="/subscription" element={<Subscription />} />
+        <Route path="/payment-history" element={<PaymentHistory />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

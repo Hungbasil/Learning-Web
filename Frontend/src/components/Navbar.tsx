@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Menu, X, LogOut, Settings } from 'lucide-react'
+import { Menu, X, LogOut, Settings, CreditCard, History } from 'lucide-react'
 
 export function Navbar() {
   const navigate = useNavigate()
@@ -85,9 +85,9 @@ export function Navbar() {
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                   <div className="px-4 py-3 border-b border-gray-100">
                     <p className="text-sm font-semibold text-gray-800">{user.email}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {user.aiTokens} lượt AI
-                    </p>
+                    {user.isPremium && (
+                      <p className="text-xs text-indigo-600 font-medium">👑 Premium</p>
+                    )}
                   </div>
 
                   <div className="py-2">
@@ -101,6 +101,31 @@ export function Navbar() {
                       <Settings className="w-4 h-4" />
                       Hồ sơ cá nhân
                     </button>
+
+                    <button
+                      onClick={() => {
+                        navigate('/payment-history')
+                        setIsUserDropdownOpen(false)
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 border-t border-gray-100 mt-2 pt-2"
+                    >
+                      <History className="w-4 h-4" />
+                      Lịch sử thanh toán
+                    </button>
+
+                    {!user.isPremium && (
+                      <button
+                        onClick={() => {
+                          navigate('/subscription')
+                          setIsUserDropdownOpen(false)
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-2"
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Nâng cấp Premium
+                      </button>
+                    )}
+
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 border-t border-gray-100 mt-2 pt-2"
