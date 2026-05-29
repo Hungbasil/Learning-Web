@@ -29,13 +29,22 @@ interface Result {
   answers: Answer[]
 }
 
+interface Analysis {
+  status: 'skipped' | 'wrong' | 'correct' | 'partial' | 'error'
+  strengths: string[]
+  improvements: string[]
+  message: string
+}
+
 export default function InterviewResult() {
   const { token, user } = useAuthStore()
   const navigate = useNavigate()
   const { id, sessionId } = useParams<{ id: string; sessionId: string }>()
   
   const [result, setResult] = useState<Result | null>(null)
+  const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [loading, setLoading] = useState(true)
+  const [analysisLoading, setAnalysisLoading] = useState(true)
   const [error, setError] = useState('')
   const [expandedAnswer, setExpandedAnswer] = useState<number | null>(null)
   const [isPremium, setIsPremium] = useState(false)
@@ -54,6 +63,23 @@ export default function InterviewResult() {
         setLoading(true)
         const response = await axiosClient.get(`/interviews/sessions/${sessionId}/result`)
         setResult(response.data)
+        
+        // Fetch analysis sau khi có result
+        try {
+          setAnalysisLoading(true)
+          const analysisResponse = await axiosClient.post(`/interviews/sessions/${sessionId}/analyze`)
+          setAnalysis(analysisResponse.data)
+        } catch (analysisErr) {
+          console.error('Lỗi khi tải phân tích:', analysisErr)
+          setAnalysis({
+            status: 'error',
+            strengths: [],
+            improvements: [],
+            message: 'Không thể tải phân tích'
+          })
+        } finally {
+          setAnalysisLoading(false)
+        }
       } catch (err) {
         console.error('Lỗi khi tải kết quả:', err)
         setError('Không thể tải kết quả phỏng vấn')
@@ -102,17 +128,94 @@ export default function InterviewResult() {
   const isPassed = result.totalScore >= result.passingScore
   const scorePercentage = Math.round((result.totalScore / (result.answers.length * 10)) * 100)
 
-  const strengths = [
-    'Câu trả lời chi tiết và có cấu trúc tốt',
-    'Hiểu rõ các khái niệm cơ bản',
-    'Cách tiếp cận vấn đề logic'
-  ]
+  // Determine UI based on analysis status
+  const getAnalysisUI = () => {
+    if (analysisLoading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200 animate-pulse">
+            <div className="h-6 bg-gray-300 rounded mb-4 w-1/3"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+            </div>
+          </div>
+          <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200 animate-pulse">
+            <div className="h-6 bg-gray-300 rounded mb-4 w-1/3"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-300 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+            </div>
+          </div>
+        </div>
+      )
+    }
 
-  const improvements = [
-    'Cần làm quen thêm với các best practices',
-    'Hãy cung cấp thêm ví dụ cụ thể',
-    'Tập trung vào performance optimization'
-  ]
+    if (!analysis || analysis.status === 'error') {
+      return (
+        <div className="bg-red-50 rounded-2xl p-6 border border-red-200 mb-8">
+          <p className="text-red-700">{analysis?.message || 'Không thể phân tích kết quả'}</p>
+        </div>
+      )
+    }
+
+    // Handle skipped case
+    if (analysis.status === 'skipped') {
+      return (
+        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200 mb-8">
+          <p className="text-gray-700 text-center font-medium">{analysis.message}</p>
+        </div>
+      )
+    }
+
+    // Handle correct, wrong, partial cases
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        {/* Strengths */}
+        {analysis.strengths.length > 0 && (
+          <div className="bg-green-50 rounded-2xl p-6 border border-green-200">
+            <div className="flex items-center gap-3 mb-4">
+              <Check className="w-6 h-6 text-green-600" />
+              <h3 className="text-lg font-bold text-green-900">Điểm mạnh</h3>
+            </div>
+            <ul className="space-y-2">
+              {analysis.strengths.map((strength, idx) => (
+                <li key={idx} className="text-sm text-green-800 flex items-start gap-2">
+                  <span className="text-green-600 mt-1">✓</span>
+                  <span>{strength}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Improvements */}
+        {analysis.improvements.length > 0 && (
+          <div className="bg-yellow-50 rounded-2xl p-6 border border-yellow-200">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertCircle className="w-6 h-6 text-yellow-600" />
+              <h3 className="text-lg font-bold text-yellow-900">Cần cải thiện</h3>
+            </div>
+            <ul className="space-y-2">
+              {analysis.improvements.map((improvement, idx) => (
+                <li key={idx} className="text-sm text-yellow-800 flex items-start gap-2">
+                  <span className="text-yellow-600 mt-1">•</span>
+                  <span>{improvement}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* If both empty but not skipped */}
+        {analysis.strengths.length === 0 && analysis.improvements.length === 0 && (
+          <div className="col-span-full bg-gray-50 rounded-2xl p-6 border border-gray-200">
+            <p className="text-gray-700 text-center">{analysis.message || 'Không có phân tích nào'}</p>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <Layout>
@@ -212,40 +315,8 @@ export default function InterviewResult() {
           </div>
         </div>
 
-        {/* Feedback Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Strengths */}
-          <div className="bg-green-50 rounded-2xl p-6 border border-green-200">
-            <div className="flex items-center gap-3 mb-4">
-              <Check className="w-6 h-6 text-green-600" />
-              <h3 className="text-lg font-bold text-green-900">Điểm mạnh</h3>
-            </div>
-            <ul className="space-y-2">
-              {strengths.map((strength, idx) => (
-                <li key={idx} className="text-sm text-green-800 flex items-start gap-2">
-                  <span className="text-green-600 mt-1">✓</span>
-                  <span>{strength}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Improvements */}
-          <div className="bg-yellow-50 rounded-2xl p-6 border border-yellow-200">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertCircle className="w-6 h-6 text-yellow-600" />
-              <h3 className="text-lg font-bold text-yellow-900">Cần cải thiện</h3>
-            </div>
-            <ul className="space-y-2">
-              {improvements.map((improvement, idx) => (
-                <li key={idx} className="text-sm text-yellow-800 flex items-start gap-2">
-                  <span className="text-yellow-600 mt-1">•</span>
-                  <span>{improvement}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        {/* Feedback Section - Dynamic */}
+        {getAnalysisUI()}
 
         {/* Detailed Feedback */}
         {isPremium && (
