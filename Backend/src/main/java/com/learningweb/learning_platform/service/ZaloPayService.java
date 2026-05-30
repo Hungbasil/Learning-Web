@@ -3,6 +3,7 @@ package com.learningweb.learning_platform.service;
 
 import com.learningweb.learning_platform.entity.PaymentTransaction;
 import com.learningweb.learning_platform.entity.User;
+import com.learningweb.learning_platform.dto.ZaloPayOrderResponse;
 import com.learningweb.learning_platform.repository.PaymentTransactionRepository;
 import com.learningweb.learning_platform.utils.HMACUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +40,7 @@ public class ZaloPayService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public String createOrder(User user, Long amount, String orderInfo) {
+    public ZaloPayOrderResponse createOrder(User user, Long amount, String orderInfo) {
         try {
             String transId = getCurrentTimeString("yyMMdd") + "_" + System.currentTimeMillis();
 
@@ -70,22 +71,31 @@ public class ZaloPayService {
             Map<String, Object> response = restTemplate.postForObject(endpointCreate, request, Map.class);
 
             if (response != null && (Integer) response.get("return_code") == 1) {
-                PaymentTransaction newTx = PaymentTransaction.builder()
-                        .user(user)
+                // Return order URL directly - don't create transaction here
+                // Transaction will be created in PaymentController
+                String orderUrl = (String) response.get("order_url");
+                System.out.println("[ZaloPayService] Order created successfully: " + transId);
+                System.out.println("[ZaloPayService] Order URL: " + orderUrl);
+                return ZaloPayOrderResponse.builder()
+                        .orderUrl(orderUrl)
                         .appTransId(transId)
-                        .amount(amount)
-                        .description(orderInfo)
-                        .status("PENDING")
+                        .success(true)
                         .build();
-                paymentRepository.save(newTx);
-
-                return (String) response.get("order_url");
             }
 
-            return null;
+            String errorMsg = response != null ? response.toString() : "ZaloPay API returned null";
+            System.out.println("[ZaloPayService] ZaloPay API returned error. Response: " + errorMsg);
+            return ZaloPayOrderResponse.builder()
+                    .success(false)
+                    .errorMessage(errorMsg)
+                    .build();
         } catch (Exception e) {
-            System.out.println(" Lỗi gọi ZaloPay: " + e.getMessage());
-            return null;
+            System.out.println("[ZaloPayService] Error calling ZaloPay: " + e.getMessage());
+            e.printStackTrace();
+            return ZaloPayOrderResponse.builder()
+                    .success(false)
+                    .errorMessage(e.getMessage())
+                    .build();
         }
     }
 

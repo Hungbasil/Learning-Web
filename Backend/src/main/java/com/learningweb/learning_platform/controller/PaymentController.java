@@ -48,13 +48,17 @@ public class PaymentController {
     @PostMapping("/create")
     public ResponseEntity<?> createPayment(@RequestParam Long amount, @RequestParam String orderInfo) {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String paymentUrl = zaloPayService.createOrder(currentUser, amount, orderInfo);
-        if (paymentUrl != null) {
+        
+        var zaloPayResponse = zaloPayService.createOrder(currentUser, amount, orderInfo);
+        
+        if (zaloPayResponse.isSuccess()) {
             Map<String, String> response = new HashMap<>();
-            response.put("payUrl", paymentUrl);
+            response.put("payUrl", zaloPayResponse.getOrderUrl());
             return ResponseEntity.ok(response);
         }
-        return ResponseEntity.badRequest().body("Lỗi: Không thể kết nối với cổng thanh toán lúc này.");
+        
+        System.err.println("[PaymentController] ZaloPay error: " + zaloPayResponse.getErrorMessage());
+        return ResponseEntity.badRequest().body("Lỗi: " + zaloPayResponse.getErrorMessage());
     }
 
     // ============ NEW ENDPOINTS FOR COURSE & PREMIUM ============
@@ -85,19 +89,22 @@ public class PaymentController {
         paymentRepository.save(tx);
 
         // Create ZaloPay order
-        String paymentUrl = zaloPayService.createOrder(currentUser, tx.getAmount(), 
+        var zaloPayResponse = zaloPayService.createOrder(currentUser, tx.getAmount(), 
                 "Mua khóa học " + course.getTitle());
 
-        if (paymentUrl != null) {
-            tx.setAppTransId(paymentUrl.split("apptransid=")[1].split("&")[0]);
+        if (zaloPayResponse.isSuccess()) {
+            // Update transaction with appTransId from ZaloPay
+            tx.setAppTransId(zaloPayResponse.getAppTransId());
             paymentRepository.save(tx);
+            
             Map<String, Object> response = new HashMap<>();
-            response.put("payUrl", paymentUrl);
+            response.put("payUrl", zaloPayResponse.getOrderUrl());
             response.put("transactionId", tx.getId());
             return ResponseEntity.ok(response);
         }
 
-        return ResponseEntity.badRequest().body("Lỗi: Không thể kết nối với cổng thanh toán");
+        System.err.println("[PaymentController] ZaloPay error for course payment: " + zaloPayResponse.getErrorMessage());
+        return ResponseEntity.badRequest().body("Lỗi: " + zaloPayResponse.getErrorMessage());
     }
 
     @PostMapping("/premium/{months}")
@@ -123,20 +130,23 @@ public class PaymentController {
         paymentRepository.save(tx);
 
         // Create ZaloPay order
-        String paymentUrl = zaloPayService.createOrder(currentUser, tx.getAmount(),
+        var zaloPayResponse = zaloPayService.createOrder(currentUser, tx.getAmount(),
                 "Nâng cấp Premium " + months + " tháng");
 
-        if (paymentUrl != null) {
-            tx.setAppTransId(paymentUrl.split("apptransid=")[1].split("&")[0]);
+        if (zaloPayResponse.isSuccess()) {
+            // Update transaction with appTransId from ZaloPay
+            tx.setAppTransId(zaloPayResponse.getAppTransId());
             paymentRepository.save(tx);
+            
             Map<String, Object> response = new HashMap<>();
-            response.put("payUrl", paymentUrl);
+            response.put("payUrl", zaloPayResponse.getOrderUrl());
             response.put("transactionId", tx.getId());
             response.put("amount", amount / 1000); // Return amount in VND
             return ResponseEntity.ok(response);
         }
 
-        return ResponseEntity.badRequest().body("Lỗi: Không thể kết nối với cổng thanh toán");
+        System.err.println("[PaymentController] ZaloPay error for premium payment: " + zaloPayResponse.getErrorMessage());
+        return ResponseEntity.badRequest().body("Lỗi: " + zaloPayResponse.getErrorMessage());
     }
 
     @GetMapping("/history")

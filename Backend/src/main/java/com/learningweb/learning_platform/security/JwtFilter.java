@@ -74,7 +74,14 @@ public class JwtFilter extends OncePerRequestFilter { // OncePerRequestFilter: L
             filterChain.doFilter(request, response);
         } catch (Exception e) {
             System.err.println("[JwtFilter] Error processing JWT: " + e.getMessage());
-            filterChain.doFilter(request, response);
+            e.printStackTrace();
+            // Continue filtering despite JWT error to avoid breaking the filter chain
+            try {
+                filterChain.doFilter(request, response);
+            } catch (Exception filterException) {
+                System.err.println("[JwtFilter] Error in filter chain: " + filterException.getMessage());
+                filterException.printStackTrace();
+            }
         }
     }
 }

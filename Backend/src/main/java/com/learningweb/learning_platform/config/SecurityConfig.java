@@ -29,6 +29,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/payment/callback").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/interviews/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/payment/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/payment/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/interviews/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/interviews/**").authenticated()
                         .requestMatchers("/static/**").permitAll()
