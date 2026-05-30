@@ -76,11 +76,10 @@ public class PaymentController {
             return ResponseEntity.badRequest().body("Khóa học này không có giá");
         }
 
-        // Create payment transaction
         PaymentTransaction tx = PaymentTransaction.builder()
                 .user(currentUser)
                 .course(course)
-                .amount((long) (course.getPrice() * 1000)) // Convert to VND
+                .amount(course.getPrice().longValue())
                 .description("Mua khóa học: " + course.getTitle())
                 .paymentType("COURSE")
                 .status("PENDING")
@@ -93,7 +92,6 @@ public class PaymentController {
                 "Mua khóa học " + course.getTitle());
 
         if (zaloPayResponse.isSuccess()) {
-            // Update transaction with appTransId from ZaloPay
             tx.setAppTransId(zaloPayResponse.getAppTransId());
             paymentRepository.save(tx);
             
@@ -115,8 +113,8 @@ public class PaymentController {
             return ResponseEntity.badRequest().body("Thời hạn premium không hợp lệ (1-12 tháng)");
         }
 
-        // Pricing: 99,000 VND/month
-        long amount = (long) months * 99000 * 1000; // Convert to VND
+        // Pricing: 99,000 VND/month (amount in VND, not multiplied by 1000)
+        long amount = (long) months * 99000;
 
         PaymentTransaction tx = PaymentTransaction.builder()
                 .user(currentUser)
@@ -141,7 +139,7 @@ public class PaymentController {
             Map<String, Object> response = new HashMap<>();
             response.put("payUrl", zaloPayResponse.getOrderUrl());
             response.put("transactionId", tx.getId());
-            response.put("amount", amount / 1000); // Return amount in VND
+            response.put("amount", amount); // Amount already in VND
             return ResponseEntity.ok(response);
         }
 
