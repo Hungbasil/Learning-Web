@@ -15,6 +15,9 @@ import Study from '@/pages/Study'
 import StudySession from '@/pages/StudySession'
 import Subscription from '@/pages/Subscription'
 import PaymentHistory from '@/pages/PaymentHistory'
+import Profile from '@/pages/Profile'
+import ProfileEdit from '@/pages/ProfileEdit'
+import ProfilePublic from '@/pages/ProfilePublic'
 import { useAuthStore } from '@/store/authStore'
 import { ArrowRight } from 'lucide-react'
 
@@ -111,6 +114,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/otp-verification" element={<OtpVerification />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/edit" element={<ProfileEdit />} />
+        <Route path="/profile/:userId/public" element={<ProfilePublic />} />
         <Route path="/roadmaps" element={<Roadmaps />} />
         <Route path="/courses/:id" element={<CourseDetail />} />
         <Route path="/courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
