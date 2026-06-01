@@ -1,0 +1,85 @@
+# ===================================
+# Learning Platform - Configuration Template
+# Copy to application.properties and fill in your values
+# ===================================
+
+spring.application.name=learning-platform
+
+# ===================================
+# Database Configuration
+# ===================================
+spring.datasource.url=jdbc:postgresql://localhost:5433/learning_web_platform
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_DB_PASSWORD_HERE
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# ===================================
+# JPA / Hibernate Configuration
+# ===================================
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+
+# ===================================
+# Email Configuration (Gmail)
+# ===================================
+# Generate App Password: https://myaccount.google.com/apppasswords
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=your_email@gmail.com
+spring.mail.password=YOUR_APP_PASSWORD_HERE
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+spring.mail.properties.mail.smtp.starttls.required=true
+
+# ===================================
+# JWT Configuration
+# ===================================
+jwt.secret=YOUR_SUPER_SECRET_JWT_KEY_MIN_256_BITS_HERE_CHANGE_IN_PRODUCTION
+jwt.expiration=86400000
+
+# ===================================
+# Cloudinary Configuration (Image Upload)
+# ===================================
+# Get from: https://cloudinary.com/console
+cloudinary.cloud-name=YOUR_CLOUD_NAME_HERE
+cloudinary.api-key=YOUR_API_KEY_HERE
+cloudinary.api-secret=YOUR_API_SECRET_HERE
+
+# ===================================
+# ZaloPay Configuration (Payment)
+# ===================================
+# Get from: https://business.zalopay.vn/
+zalopay.endpoint.create=https://sb-openapi.zalopay.vn/v2/create
+zalopay.app-id=2553
+zalopay.key1=YOUR_ZALOPAY_KEY1_HERE
+zalopay.key2=YOUR_ZALOPAY_KEY2_HERE
+
+# ===================================
+# File Upload Configuration
+# ===================================
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+# ===================================
+# Logging Configuration
+# ===================================
+logging.level.root=INFO
+logging.level.com.learningweb=DEBUG
+logging.level.org.springframework.security=DEBUG
+logging.level.org.hibernate.SQL=DEBUG
+
+# ===================================
+# Server Configuration
+# ===================================
+server.port=8080
+server.servlet.context-path=/
+
+# ===================================
+# CORS Configuration
+# ===================================
+spring.web.cors.allowed-origins=http://localhost:5173,http://localhost:3000
+spring.web.cors.allowed-methods=GET,POST,PUT,DELETE,OPTIONS
+spring.web.cors.allowed-headers=*
+spring.web.cors.allow-credentials=true

@@ -31,3 +31,26 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Application Configuration (Sensitive) ###
+# Never commit actual application.properties with credentials
+src/main/resources/application.properties
+src/main/resources/application-dev.properties
+src/main/resources/application-prod.properties
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+### IDE ###
+*.log
+*.swp
+*.swo
+*~
+
+### OS ###
+.DS_Store
+Thumbs.db
