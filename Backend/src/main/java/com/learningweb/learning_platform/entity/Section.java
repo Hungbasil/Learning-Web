@@ -1,6 +1,6 @@
 package com.learningweb.learning_platform.entity;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
@@ -25,6 +25,7 @@ public class Section {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id")
+    @JsonIgnore
     private Course course;
 
     @OneToMany(mappedBy = "section", cascade = CascadeType.ALL)

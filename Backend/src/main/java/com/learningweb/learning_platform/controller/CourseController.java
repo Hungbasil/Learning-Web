@@ -9,6 +9,9 @@ import com.learningweb.learning_platform.entity.Course;
 import com.learningweb.learning_platform.entity.User;
 import com.learningweb.learning_platform.repository.CategoryRepository;
 import com.learningweb.learning_platform.repository.CourseRepository;
+import com.learningweb.learning_platform.repository.CourseReviewRepository;
+import com.learningweb.learning_platform.repository.LessonProgressRepository;
+import com.learningweb.learning_platform.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,10 +31,25 @@ public class CourseController {
     private CategoryRepository categoryRepository;
 
     @Autowired
+    private CourseReviewRepository courseReviewRepository;
+
+    @Autowired
+    private LessonProgressRepository lessonProgressRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private com.learningweb.learning_platform.service.FileUploadService fileUploadService;
 
+    @Autowired
+    private com.learningweb.learning_platform.repository.BookmarkRepository bookmarkRepository;
 
-    // Danh sánh các khóa học
+    @Autowired
+    private com.learningweb.learning_platform.repository.EnrollmentRepository enrollmentRepository;
+
+
+    // Chi tiết khóa học
     @GetMapping("/{id}")
     public ResponseEntity<?> getCourseDetail(@PathVariable Long id) {
         Course course = courseRepository.findById(id).orElse(null);
@@ -39,16 +57,60 @@ public class CourseController {
             return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy khóa học!");
         }
 
+        // Get current user
+        User currentUser = null;
+        try {
+            currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        } catch (Exception e) {
+            // User not authenticated or not in principal
+        }
+
+        final User user = currentUser;
+
+        // Calculate average rating and total reviews
+        Double averageRating = courseReviewRepository.getAverageRatingByCourseId(id);
+        Long totalReviewsCount = courseReviewRepository.countByCourseId(id);
+        Integer totalReviews = totalReviewsCount != null ? totalReviewsCount.intValue() : 0;
+
+        // Calculate completion percentage
+        Integer completionPercentage = 0;
+        if (user != null) {
+            Integer totalLessons = course.getTotalLessons() != null ? course.getTotalLessons() : 0;
+            if (totalLessons > 0) {
+                Long completedLessons = lessonProgressRepository.countByUserIdAndCourseIdAndCompleted(user.getId(), id, true);
+                completionPercentage = (int) ((completedLessons * 100L) / totalLessons);
+            }
+        }
+
+        // Build sections with lessons including status
         List<CourseDetailResponse.SectionDto> sectionDtos = course.getSections().stream().map(section -> {
-            List<CourseDetailResponse.LessonDto> lessonDtos = section.getLessons().stream().map(lesson ->
-                    CourseDetailResponse.LessonDto.builder()
-                            .id(lesson.getId())
-                            .title(lesson.getTitle())
-                            .videoUrl(lesson.getVideoUrl())
-                            .orderIndex(lesson.getOrderIndex())
-                            .isFree(lesson.isFree())
-                            .build()
-            ).toList();
+            List<CourseDetailResponse.LessonDto> lessonDtos = section.getLessons().stream().map(lesson -> {
+                String status = "locked"; // default status
+                
+                if (user != null) {
+                    // Check if lesson is completed
+                    boolean isCompleted = lessonProgressRepository.existsByUserIdAndLessonIdAndCompleted(user.getId(), lesson.getId(), true);
+                    if (isCompleted) {
+                        status = "completed";
+                    } else {
+                        // Check if any lesson before this is completed (simple check: if first lesson or previous is completed)
+                        boolean hasStarted = lessonProgressRepository.existsByUserIdAndLessonId(user.getId(), lesson.getId());
+                        if (hasStarted || section.getLessons().indexOf(lesson) == 0) {
+                            status = "in-progress";
+                        }
+                    }
+                }
+                
+                return CourseDetailResponse.LessonDto.builder()
+                        .id(lesson.getId())
+                        .title(lesson.getTitle())
+                        .videoUrl(lesson.getVideoUrl())
+                        .duration(lesson.getDuration() != null ? lesson.getDuration() : 0)
+                        .orderIndex(lesson.getOrderIndex())
+                        .isFree(lesson.isFree())
+                        .status(status)
+                        .build();
+            }).toList();
 
             return CourseDetailResponse.SectionDto.builder()
                     .id(section.getId())
@@ -64,9 +126,21 @@ public class CourseController {
                 .description(course.getDescription())
                 .price(course.getPrice())
                 .imageUrl(course.getImageUrl())
-                .level(course.getLevel())
-                .categoryName(course.getCategory().getName())
-                .instructorName(course.getInstructor().getFullName())
+                .level(course.getLevel() != null ? course.getLevel() : "Cơ bản")
+                .categoryName(course.getCategory() != null ? course.getCategory().getName() : "Khác")
+                .instructorName(course.getInstructor() != null ? course.getInstructor().getFullName() : "Unknown")
+                .totalLessons(course.getTotalLessons() != null ? course.getTotalLessons() : 0)
+                .totalDuration(course.getTotalDuration() != null ? course.getTotalDuration() : "0")
+                .averageRating(averageRating != null ? averageRating : 0.0)
+                .totalReviews(totalReviews)
+                .completionPercentage(completionPercentage)
+                .isFree(course.getIsFree() != null ? course.getIsFree() : (course.getPrice() == null || course.getPrice() == 0))
+                .programmingLanguage(course.getProgrammingLanguage() != null ? course.getProgrammingLanguage() : "JavaScript")
+                .icon(course.getIcon() != null ? course.getIcon() : "💻")
+                .bgColor(course.getBgColor() != null ? course.getBgColor() : "bg-blue-100")
+                .enrolledCount(course.getEnrolledCount() != null ? course.getEnrolledCount() : 0)
+                .isBookmarked(user != null && bookmarkRepository.existsByUserIdAndCourseId(user.getId(), id))
+                .isEnrolled(user != null && enrollmentRepository.findByUserAndCourse(user, course).isPresent())
                 .sections(sectionDtos)
                 .build();
         return ResponseEntity.ok(response);
@@ -76,17 +150,28 @@ public class CourseController {
     public ResponseEntity<?> getAllCourses() {
 
         List<Course> courses = courseRepository.findAll();
-        List<CourseListResponse> responseList = courses.stream().map(course ->
-                CourseListResponse.builder()
-                        .id(course.getId())
-                        .title(course.getTitle())
-                        .price(course.getPrice())
-                        .imageUrl(course.getImageUrl())
-                        .level(course.getLevel())
-                        .categoryName(course.getCategory().getName())
-                        .instructorName(course.getInstructor().getFullName())
-                        .build()
-        ).collect(Collectors.toList());
+        List<CourseListResponse> responseList = courses.stream().map(course -> {
+            Boolean isFree = course.getIsFree() != null ? course.getIsFree() : (course.getPrice() == null || course.getPrice() == 0);
+            Integer enrolledCount = course.getEnrolledCount() != null ? course.getEnrolledCount() : 0;
+            
+            return CourseListResponse.builder()
+                    .id(course.getId())
+                    .title(course.getTitle())
+                    .description(course.getDescription())
+                    .price(course.getPrice())
+                    .imageUrl(course.getImageUrl())
+                    .level(course.getLevel() != null ? course.getLevel() : "Cơ bản")
+                    .categoryName(course.getCategory() != null ? course.getCategory().getName() : "Khác")
+                    .instructorName(course.getInstructor() != null ? course.getInstructor().getFullName() : "Unknown")
+                    .totalLessons(course.getTotalLessons() != null ? course.getTotalLessons() : 0)
+                    .totalDuration(course.getTotalDuration() != null ? course.getTotalDuration() : "0")
+                    .isFree(isFree)
+                    .programmingLanguage(course.getProgrammingLanguage() != null ? course.getProgrammingLanguage() : "JavaScript")
+                    .icon(course.getIcon() != null ? course.getIcon() : "💻")
+                    .bgColor(course.getBgColor() != null ? course.getBgColor() : "bg-blue-100")
+                    .enrolledCount(enrolledCount)
+                    .build();
+        }).collect(Collectors.toList());
         return ResponseEntity.ok(responseList);
     }
 

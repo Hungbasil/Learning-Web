@@ -28,6 +28,13 @@ public class Course {
     private String level;
     private Integer totalLessons;
     private String totalDuration;
+    private Boolean isFree;
+    private String programmingLanguage;
+    private String icon;
+    private String bgColor;
+    private Integer enrolledCount;
+    private Double averageRating;
+    private Integer totalReviews;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")

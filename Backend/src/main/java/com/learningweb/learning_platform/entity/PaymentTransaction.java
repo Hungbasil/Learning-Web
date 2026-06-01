@@ -21,11 +21,23 @@ public class PaymentTransaction {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id")
+    private Course course;
+
     private String appTransId;
     private String zpTransId;
 
     private Long amount;
     private String description;
+
+    // Type of payment: COURSE, PREMIUM, AI_TOKENS
+    @Column(name = "payment_type")
+    private String paymentType;
+
+    // For PREMIUM: duration in months
+    @Column(name = "premium_months")
+    private Integer premiumMonths;
 
     private String status;
 

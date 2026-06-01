@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -23,12 +24,20 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/payment/callback").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/interviews/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/payment/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/payment/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/interviews/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/interviews/**").authenticated()
+                        .requestMatchers("/static/**").permitAll()
                         .requestMatchers("/api/users/admin-only").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
+                .securityMatcher("/**") 
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -41,9 +50,9 @@ public class SecurityConfig {
     @Bean
     public UrlBasedCorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:3000"));
+        configuration.setAllowedOriginPatterns(Arrays.asList("http://localhost:*")); // Cho tất cả localhost ports
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

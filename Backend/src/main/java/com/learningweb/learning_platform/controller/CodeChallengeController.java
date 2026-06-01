@@ -3,6 +3,7 @@ package com.learningweb.learning_platform.controller;
 import com.learningweb.learning_platform.dto.CodeSubmitRequest;
 import com.learningweb.learning_platform.entity.*;
 import com.learningweb.learning_platform.repository.CodeChallengeRepository;
+import com.learningweb.learning_platform.repository.LessonProgressRepository;
 import com.learningweb.learning_platform.repository.UserRepository;
 import com.learningweb.learning_platform.service.CodeEvaluationService;
 import com.learningweb.learning_platform.service.OllamaService;
@@ -22,6 +23,7 @@ public class CodeChallengeController {
     @Autowired private CodeEvaluationService evaluationService;
     @Autowired private OllamaService ollamaService;
     @Autowired private UserRepository userRepository;
+    @Autowired private LessonProgressRepository lessonProgressRepository;
 
     @PostMapping("/{id}/process")
     public ResponseEntity<?> processCode(
@@ -64,6 +66,18 @@ public class CodeChallengeController {
 
         response.put("type", "EVALUATION");
         response.put("status", result.getStatus());
+        
+        if (result.getStatus().equals("ACCEPTED")) {
+            Lesson lesson = challenge.getLesson();
+            if (lesson != null) {
+                LessonProgress progress = lessonProgressRepository.findByUserAndLesson(user, lesson)
+                        .orElse(LessonProgress.builder().user(user).lesson(lesson).build());
+                progress.setCompleted(true);
+                lessonProgressRepository.save(progress);
+                System.out.println(" Đã đánh dấu bài học " + lesson.getId() + " là hoàn thành cho " + user.getEmail());
+            }
+        }
+        
         response.put("xpEarned", result.getStatus().equals("ACCEPTED") ? challenge.getXpReward() : 0);
         return ResponseEntity.ok(response);
     }

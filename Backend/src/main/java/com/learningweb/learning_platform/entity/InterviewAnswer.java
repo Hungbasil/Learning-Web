@@ -3,6 +3,7 @@ package com.learningweb.learning_platform.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "interview_answers")
@@ -17,6 +18,7 @@ public class InterviewAnswer {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
+    @JsonIgnore
     private InterviewSession session;
 
     @ManyToOne(fetch = FetchType.LAZY)

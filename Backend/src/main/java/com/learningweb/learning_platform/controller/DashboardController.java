@@ -1,18 +1,17 @@
 package com.learningweb.learning_platform.controller;
 
 
-import com.learningweb.learning_platform.dto.DashboardResponse;
+import com.learningweb.learning_platform.dto.*;
 import com.learningweb.learning_platform.entity.Course;
 import com.learningweb.learning_platform.entity.Enrollment;
 import com.learningweb.learning_platform.entity.User;
 import com.learningweb.learning_platform.repository.EnrollmentRepository;
 import com.learningweb.learning_platform.repository.LessonProgressRepository;
+import com.learningweb.learning_platform.service.DashboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +25,9 @@ public class DashboardController {
 
     @Autowired
     private LessonProgressRepository progressRepository;
+
+    @Autowired
+    private DashboardService dashboardService;
 
     @GetMapping("/my-progress")
     public ResponseEntity<?> getMyProgress() {
@@ -71,5 +73,36 @@ public class DashboardController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/leaderboard")
+    public ResponseEntity<?> getLeaderboard(@RequestParam(defaultValue = "10") int limit, 
+                                            @RequestParam(defaultValue = "0") int offset) {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(dashboardService.getLeaderboard(currentUser, limit, offset));
+    }
+
+    @GetMapping("/activity-heatmap")
+    public ResponseEntity<?> getActivityHeatmap(@RequestParam(defaultValue = "365") int days) {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(dashboardService.getActivityHeatmap(currentUser, days));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<?> getStats() {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(dashboardService.getDashboardStats(currentUser));
+    }
+
+    @GetMapping("/skills")
+    public ResponseEntity<?> getSkills() {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(dashboardService.getUserSkills(currentUser));
+    }
+
+    @GetMapping("/goals")
+    public ResponseEntity<?> getGoals() {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(dashboardService.getPersonalGoals(currentUser));
     }
 }

@@ -5,9 +5,12 @@ import { persist } from 'zustand/middleware'
 export interface User {
   id: number
   email: string
+  fullName: string
   role: string
   aiTokens: number
   totalXp: number
+  isPremium?: boolean
+  premiumExpiryDate?: string
 }
 
 interface AuthState {
@@ -16,6 +19,8 @@ interface AuthState {
   setAuth: (token: string, user: User) => void
   logout: () => void
   updateTokens: (newTokens: number) => void // Dùng khi xài AI bị trừ token
+  _hydrated: boolean
+  setHydrated: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -23,8 +28,9 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       user: null,
+      _hydrated: false,
 
-      setAuth: (token, user) => set({ token, user }),
+      setAuth: (token, user) => set({ token, user, _hydrated: true }),
       
       logout: () => set({ token: null, user: null }),
       
@@ -32,9 +38,16 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           user: state.user ? { ...state.user, aiTokens: newTokens } : null
         })),
+
+      setHydrated: () => set({ _hydrated: true }),
     }),
     {
       name: 'learning-vn-auth', // Tên key lưu dưới LocalStorage
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setHydrated()
+        }
+      },
     }
   )
 )

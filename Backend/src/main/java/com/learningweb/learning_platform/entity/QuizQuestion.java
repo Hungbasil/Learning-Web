@@ -1,7 +1,6 @@
 package com.learningweb.learning_platform.entity;
 
-
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.List;
@@ -20,6 +19,7 @@ public class QuizQuestion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quiz_id")
+    @JsonIgnore
     private Quiz quiz;
 
     @Column(columnDefinition = "TEXT")

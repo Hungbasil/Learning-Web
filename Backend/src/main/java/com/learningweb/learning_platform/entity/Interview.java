@@ -18,6 +18,7 @@ public class Interview {
 
     private String title;
     private String role;
+    private String field;
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -25,7 +26,8 @@ public class Interview {
     private Integer durationMinutes;
     private Integer totalQuestions;
     private Integer passingScore;
-    private Integer xpReward; // XP thưởng (Vd: 150)
+    private Integer xpReward;
+    private String difficulty;
 
     @OneToMany(mappedBy = "interview", cascade = CascadeType.ALL)
     private List<InterviewQuestion> questions;
