@@ -1,4 +1,51 @@
+# ===================================
+# Dependencies
+# ===================================
+node_modules
+package-lock.json
+
+# ===================================
+# Build Output
+# ===================================
+dist
+dist-ssr
+*.local
+
+# ===================================
+# Environment & Configuration (Sensitive)
+# ===================================
+# Never commit environment files with actual values
+.env.local
+.env.*.local
+.env
+
+# ===================================
+# IDE & Editor
+# ===================================
+.vscode/*
+!.vscode/extensions.json
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+
+# ===================================
+# OS & System Files
+# ===================================
+.DS_Store
+Thumbs.db
+*.pem
+*.key
+
+# ===================================
 # Logs
+# ===================================
 logs
 *.log
 npm-debug.log*
@@ -7,21 +54,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+
 BACKEND_SPECS.md
 SKILL.md
 INSTRUCTIONS.md
 DESIGN.md
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+
