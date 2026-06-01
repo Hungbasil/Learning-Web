@@ -243,9 +243,9 @@ server.port=8080
 spring.application.name=learning-platform
 
 # Database
-spring.datasource.url=jdbc:postgresql://localhost:5433/learning_web_platform
+spring.datasource.url=jdbc:postgresql://localhost:5432
 spring.datasource.username=postgres
-spring.datasource.password=123456
+spring.datasource.password=
 spring.jpa.hibernate.ddl-auto=validate
 spring.jpa.show-sql=false
 
