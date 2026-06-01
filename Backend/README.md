@@ -283,9 +283,9 @@ server.servlet.context-path=/
 spring.application.name=learning-platform
 
 # Database Configuration
-spring.datasource.url=jdbc:postgresql://localhost:5433/learning_web_platform
+spring.datasource.url=jdbc:postgresql://localhost:5432
 spring.datasource.username=postgres
-spring.datasource.password=123456
+spring.datasource.password=
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 # JPA/Hibernate Configuration
